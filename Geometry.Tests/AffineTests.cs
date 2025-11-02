@@ -40,14 +40,15 @@ namespace Geometry.Tests
             var rotP = new Vector4(mx, my, mz, mw);
 
             // Calculated
-            var calcP = new Point3D(x, y, z);
-            var calcRP = calcP.Rotate(angle, AxisType.Y);
+            var calcP = new Point4D(x, y, z);
+            var matrix = AffineTransformation.GetRotationMatrix(angle, Vector4.UnitY);
+            calcP.Transform(matrix);
+            var calcPV = calcP.Vector4;
 
-            
             output.WriteLine($"{x} {y} {z} {angle}");
             output.WriteLine($"{mx} {my} {mz} {angle}");
-            output.WriteLine($"{calcRP.X} {calcRP.Y} {calcRP.Z} {angle}");
-            Assert.Equal(rotP, calcRP);
+            output.WriteLine($"{calcPV.X} {calcPV.Y} {calcPV.Z} {angle}");
+            Assert.Equal(rotP, calcPV);
         }
     }
 }
