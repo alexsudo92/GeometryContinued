@@ -3,10 +3,7 @@ using Geometry.Base;
 using Geometry.UI.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Numerics;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Geometry.UI.Services
 {
@@ -15,71 +12,85 @@ namespace Geometry.UI.Services
         private readonly SourceList<Outline> _lines;
         public IObservable<IChangeSet<Outline>> Lines => _lines.Connect();
 
-        private readonly Figure _figureData;
-
+        private Figure _figureData;
         private List<Transform> _transforms;
 
-        public FigureService(string filename)
+        public FigureService()
         {
             _lines = new SourceList<Outline>();
             _transforms = new List<Transform>();
-            _figureData = Load(filename);
         }
 
-        public void AddMatrix(float scale)
+        public void UpdateFigureData(Figure figureData)
+        {
+            _figureData = figureData;
+            _transforms.Clear();
+            RenderFigure();
+        }
+
+        public void AddScaleMatrix(float scale)
         {
             if (scale != 0)
             {
                 var m = AffineTransformation.GetScaleMatrix(scale);
-                _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Scale });
 
-                Update(m);
+                if (scale > 1)
+                    _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.ScaleUp });
+
+                if (scale > 0 && scale < 1)
+                    _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.ScaleDown });
+
+                RenderFigure(m);
             }
         }
 
-        public void AddMatrix(float angle, Vector4 axis)
+        public void AddRotationMatrix(float angle, Vector4 axis)
         {
             if (angle != 0)
             {
                 var m = AffineTransformation.GetRotationMatrix(angle, axis);
                 _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Rotation });
 
-                Update(m);
+                RenderFigure(m);
             }
         }
 
-        public void AddMatrix(Vector3 vector)
+        public void AddTranslationMatrix(Vector3 vector)
         {
             if (vector != Vector3.Zero)
             {
                 var m = AffineTransformation.GetTranslationMatrix(vector);
                 _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Translation });
 
-                Update(m);
+                RenderFigure(m);
             }
         }
 
-        private void Update(Matrix4x4 m)
+        public void AddShearMatrix(float yx = 0, float xy = 0)
         {
-            _figureData.TransformAllVertices(m);
-            Clear();
-            Build();
+            if (yx != 0 || xy != 0)
+            {
+                var m = AffineTransformation.GetShearMatrix(yx: yx, xy: xy);
+                _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Shear });
+
+                RenderFigure(m);
+            }
         }
 
-        public Figure Load(string filename)
+        public void Projection(float p)
         {
-            var file = File.ReadAllText(filename);
+            if (p != 0)
+            {
+                var m = PerspectiveTransformation.ToX(1/p);
 
-            var deserializer = new DeserializerBuilder()
-                                    .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                                    .Build();
+                _figureData.TransformAllVertices(m);
+                _figureData.Normalize();
 
-            var f = deserializer.Deserialize<FigureYaml>(file);
-
-            return f.AsFigure();
+                RenderFigure();
+            }
         }
 
-        public void Build()
+        private void Build()
         {
             foreach (var e in _figureData.Edges)
             {
@@ -102,9 +113,22 @@ namespace Geometry.UI.Services
             }
         }
 
-        public void Clear()
-        {
+        private void Clear() =>
             _lines.Clear();
+
+        private void RenderFigure()
+        {
+            Clear();
+            Build();
+        }
+
+        private void RenderFigure(Matrix4x4 m)
+        {
+            if (_figureData is not null)
+            {
+                _figureData.TransformAllVertices(m);
+                RenderFigure();
+            }
         }
     }
 }

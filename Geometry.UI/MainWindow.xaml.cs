@@ -1,5 +1,6 @@
 ﻿using Geometry.UI.Services;
 using Geometry.UI.ViewModels;
+using System.IO;
 using System.Windows;
 
 namespace Geometry.UI
@@ -9,7 +10,12 @@ namespace Geometry.UI
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel(new FigureService("cube.yaml"));
+
+            var files = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.yaml");
+
+            var yamlService = new YamlService(files);
+            var figureService = new FigureService();
+            DataContext = new MainViewModel(yamlService, figureService);
         }
     }
 }

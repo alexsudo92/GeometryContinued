@@ -2,9 +2,11 @@
 {
     public enum TransformType
     {
-        Scale,
+        ScaleUp,
+        ScaleDown,
         Rotation,
         Translation,
-        Shear
+        Shear,
+        Perspective
     }
 }

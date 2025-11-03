@@ -5,7 +5,9 @@ namespace Geometry.UI.Services
 {
     public class FigureYaml
     {
-        public List<List<int>> Vertices { get; set; }
+        public int Id { get; set; }
+        public string Name { get;set; }
+        public List<List<float>> Vertices { get; set; }
         public List<List<int>> Edges { get; set; }
 
         public Figure AsFigure()
