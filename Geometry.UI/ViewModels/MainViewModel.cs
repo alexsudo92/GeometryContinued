@@ -112,8 +112,7 @@ namespace Geometry.UI.ViewModels
         public ReactiveCommand<Unit, Unit> ScaleDownCommand { get; set; }
         public ReactiveCommand<Unit, Unit> TranslateCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ShearCommand { get; set; }
-        public ReactiveCommand<Unit, Unit> PerspectiveCommand { get; set; }
-        public ReactiveCommand<Unit, Unit> ReversePerspectiveCommand { get; set; }
+        public ReactiveCommand<bool, Unit> PerspectiveCommand { get; set; }
         public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
 
         private readonly ReadOnlyObservableCollection<FigureYaml> _figures;
@@ -231,14 +230,12 @@ namespace Geometry.UI.ViewModels
                 _figureService.ShearFigure(yx: Shear);
             });
 
-            PerspectiveCommand = ReactiveCommand.Create(() =>
+            PerspectiveCommand = ReactiveCommand.Create((bool isChecked) =>
             {
-                _figureService.ProjectFigureToX(Perspective);
-            });
-
-            ReversePerspectiveCommand = ReactiveCommand.Create(() =>
-            {
-                _figureService.ReverseProjectFigureToX();
+                if (isChecked)
+                    _figureService.ProjectFigureToX(Perspective);
+                else
+                    _figureService.ReverseProjectFigureToX();
             });
 
             MoveToAreaCommand = ReactiveCommand.Create(() =>

@@ -133,8 +133,11 @@
                     <StackPanel Margin="0,5,0,0">
                         <TextBlock Margin="5,0,5,0" FontSize="12">Точка схода на оси +X:</TextBlock>
                         <TextBox Text="{Binding Perspective}" Margin="5"></TextBox>
-                        <Button Command="{Binding PerspectiveCommand}" Margin="5,0,5,0">Спроецировать</Button>
-                        <Button Command="{Binding ReversePerspectiveCommand}" Margin="5,5,5,0">Отменить проецирование</Button>
+
+                        <CheckBox Command="{Binding PerspectiveCommand}"
+                                  CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                                  VerticalContentAlignment="Center"
+                                  HorizontalAlignment="Center">Спроецировать</CheckBox>
                     </StackPanel>
                 </Expander>
                 <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Вписывание">
@@ -177,7 +180,6 @@
                        Canvas.Left="{Binding AreaX1}"
                        Width="{Binding AreaWidth}"
                        Height="{Binding AreaHeight}"
-                       
                        Stroke="Black" StrokeThickness="2"  Fill="Aqua" Opacity="0.5"/>
         </Canvas>
         <ItemsControl ItemsSource="{Binding Lines}" Grid.Column="1">

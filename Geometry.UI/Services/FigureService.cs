@@ -116,8 +116,6 @@ namespace Geometry.UI.Services
                 _figureData.TransformAllVertices(iM);
                 _history.Remove(last);
 
-                _figureData.TransformAllVertices(iM);
-
                 if (shouldRender)
                     RenderFigure();
             }
