@@ -24,6 +24,13 @@ namespace Geometry.UI.ViewModels
         private float _tZ;
         private float _shear;
         private float _perspective;
+        private float _areaX1;
+        private float _areaY1;
+        private float _areaX2;
+        private float _areaY2;
+        private float _areaWidth;
+        private float _areaHeight;
+
         public float Scale
         {
             get => _scale;
@@ -69,13 +76,45 @@ namespace Geometry.UI.ViewModels
             get => _perspective;
             set => this.RaiseAndSetIfChanged(ref _perspective, value);
         }
+        public float AreaX1
+        {
+            get => _areaX1;
+            set => this.RaiseAndSetIfChanged(ref _areaX1, value);
+        }
+        public float AreaY1
+        {
+            get => _areaY1;
+            set => this.RaiseAndSetIfChanged(ref _areaY1, value);
+        }
+        public float AreaX2
+        {
+            get => _areaX2;
+            set => this.RaiseAndSetIfChanged(ref _areaX2, value);
+        }
+        public float AreaY2
+        {
+            get => _areaY2;
+            set => this.RaiseAndSetIfChanged(ref _areaY2, value);
+        }
+        public float AreaWidth
+        {
+            get => _areaWidth;
+            set => this.RaiseAndSetIfChanged(ref _areaWidth, value);
+        }
+        public float AreaHeight
+        {
+            get => _areaHeight;
+            set => this.RaiseAndSetIfChanged(ref _areaHeight, value);
+        }
+
 
         public ReactiveCommand<Unit, Unit> ScaleUpCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ScaleDownCommand { get; set; }
         public ReactiveCommand<Unit, Unit> TranslateCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ShearCommand { get; set; }
         public ReactiveCommand<Unit, Unit> PerspectiveCommand { get; set; }
-
+        public ReactiveCommand<Unit, Unit> ReversePerspectiveCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
 
         private readonly ReadOnlyObservableCollection<FigureYaml> _figures;
         public ReadOnlyObservableCollection<FigureYaml> Figures => _figures;
@@ -106,6 +145,7 @@ namespace Geometry.UI.ViewModels
             _figureService = figureService;
 
             _yamlService.Figures
+                .SortBy(x => x.Id)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _figures)
                 .Subscribe();
@@ -120,70 +160,90 @@ namespace Geometry.UI.ViewModels
                  {
                      IsAvailable = SelectedFigure is not null;
                      if (x is not null)
-                         _figureService.UpdateFigureData(x.AsFigure());
+                         _figureService.SetFigureData(x.AsFigure());
                      ResetValues();
                  });
 
             this.WhenAnyValue(x => x.Scale)
-                .Subscribe(x => { _figureService.AddScaleMatrix(Scale); });
+                .Throttle(TimeSpan.FromMilliseconds(100))
+                .Subscribe(x => { _figureService.ScaleFigure(Scale); });
 
             this.WhenAnyValue(x => x.XAngle)
-                .Throttle(TimeSpan.FromMilliseconds(100))
+                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
                     var delta = x - _prevX;
                     _prevX = x;
-                    _figureService.AddRotationMatrix(delta, Vector4.UnitX);
+                    _figureService.RotateFigure(delta, Vector4.UnitX);
                 });
 
             this.WhenAnyValue(x => x.YAngle)
-                .Throttle(TimeSpan.FromMilliseconds(100))
+                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
                     var delta = x - _prevY;
                     _prevY = x;
-                    _figureService.AddRotationMatrix(delta, Vector4.UnitY);
+                    _figureService.RotateFigure(delta, Vector4.UnitY);
                 });
 
             this.WhenAnyValue(x => x.ZAngle)
-                .Throttle(TimeSpan.FromMilliseconds(100))
+                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
                     var delta = x - _prevZ;
                     _prevZ = x;
-                    _figureService.AddRotationMatrix(delta, Vector4.UnitZ);
+                    _figureService.RotateFigure(delta, Vector4.UnitZ);
                 });
+
+            this.WhenAnyValue(x => x.AreaX1)
+                .Subscribe(x => AreaWidth = this.AreaX2 - x);
+            this.WhenAnyValue(x => x.AreaY1)
+                .Subscribe(x => AreaHeight = this.AreaY2 - x);
+            this.WhenAnyValue(x => x.AreaX2)
+                .Subscribe(x => AreaWidth = x - this.AreaX1);
+            this.WhenAnyValue(x => x.AreaY2)
+                .Subscribe(x => AreaHeight = x - this.AreaY1);
 
             ScaleUpCommand = ReactiveCommand.Create(() =>
             {
-                if (Scale < 1)
-                    Scale = 1;
+                if (Scale < 1f)
+                    Scale = 1.1f;
                 else
                     Scale += 0.1f;
             });
 
             ScaleDownCommand = ReactiveCommand.Create(() =>
             {
-                if (Scale > 1)
-                    Scale = 1;
+                if (Scale > 1f)
+                    Scale = 1f;
 
-                if (Scale <= 1)
+                if (Scale <= 1f)
                     Scale -= 0.1f;
             });
 
             TranslateCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.AddTranslationMatrix(new Vector3(TranslateX, TranslateY, TranslateZ));
+                _figureService.TranslateFigure(new Vector3(TranslateX, TranslateY, TranslateZ));
             });
 
             ShearCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.AddShearMatrix(yx: Shear);
+                _figureService.ShearFigure(yx: Shear);
             });
 
             PerspectiveCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.Projection(Perspective);
+                _figureService.ProjectFigureToX(Perspective);
+            });
+
+            ReversePerspectiveCommand = ReactiveCommand.Create(() =>
+            {
+                _figureService.ReverseProjectFigureToX();
+            });
+
+            MoveToAreaCommand = ReactiveCommand.Create(() =>
+            {
+                _figureService.MoveToAndScale(AreaX1, AreaY1, AreaX2, AreaY2);
             });
         }
 

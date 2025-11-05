@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 
-namespace Geometry.Base
+namespace Geometry.Base.Transformation
 {
-    public class PerspectiveTransformation
+    public class Perspective
     {
         public static Matrix4x4 ToX(float p)
         {

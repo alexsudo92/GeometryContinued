@@ -14,75 +14,75 @@
         Width="900">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition MinWidth="200" MaxWidth="200"></ColumnDefinition>
+            <ColumnDefinition MinWidth="250" MaxWidth="250"></ColumnDefinition>
             <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Margin="3" Grid.Column="0">
-            <Separator BorderThickness="6" BorderBrush="Black"></Separator>
-            <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Выбор фигуры</TextBlock>
-            <Separator BorderThickness="6" BorderBrush="Black"></Separator>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="3" Grid.Column="0">
+                <Separator BorderThickness="6" BorderBrush="Black"></Separator>
+                <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Выбор фигуры</TextBlock>
+                <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
-            <ListBox ItemsSource="{Binding Figures}" SelectedItem="{Binding SelectedFigure}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock FontSize="16" Text="{Binding Name}"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-            
+                <ListBox ItemsSource="{Binding Figures}" SelectedItem="{Binding SelectedFigure}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="16" Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
-            <Separator Margin="0,10,0,0" BorderThickness="6" BorderBrush="Black"></Separator>
-            <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Операции</TextBlock>
-            <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
-            
-            <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Масштабирование">
-                <DockPanel Margin="0,10,0,10" HorizontalAlignment="Left">
-                    <TextBox Text="{Binding Scale, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" Height="24" Width="150" DockPanel.Dock="Left"/>
-                    <Button Command="{Binding ScaleUpCommand}" Width="25" FontSize="6" DockPanel.Dock="Top">▲</Button>
-                    <Button Command="{Binding ScaleDownCommand}" Width="25" FontSize="6" DockPanel.Dock="Bottom">▼</Button>
-                </DockPanel>
-            </Expander>
+                <Separator Margin="0,10,0,0" BorderThickness="6" BorderBrush="Black"></Separator>
+                <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Операции</TextBlock>
+                <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
-            <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Поворот">
-                <Grid Margin="0,10,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Масштабирование">
+                    <DockPanel Margin="0,5,0,5" HorizontalAlignment="Left">
+                        <TextBox Text="{Binding Scale, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" Height="24" Width="150" DockPanel.Dock="Left"/>
+                        <Button Command="{Binding ScaleUpCommand}" Width="25" FontSize="6" DockPanel.Dock="Top">▲</Button>
+                        <Button Command="{Binding ScaleDownCommand}" Width="25" FontSize="6" DockPanel.Dock="Bottom">▼</Button>
+                    </DockPanel>
+                </Expander>
 
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Поворот">
+                    <Grid Margin="0,5,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel HorizontalAlignment="Center" Grid.Column="0">
-                        <TextBlock HorizontalAlignment="Center" Grid.Row="0">X</TextBlock>
-                        <Slider Grid.Row="1"
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel HorizontalAlignment="Center" Grid.Column="0">
+                            <TextBlock HorizontalAlignment="Center" Grid.Row="0">X</TextBlock>
+                            <Slider Grid.Row="1"
                                 Height="200"
                                 Minimum="-180"
                                 Maximum="180"
                                 Value="{Binding XAngle, UpdateSourceTrigger=PropertyChanged}"
                                 AutoToolTipPlacement="TopLeft"
                                 Orientation="Vertical"/>
-                    </StackPanel>
+                        </StackPanel>
 
-                    <StackPanel HorizontalAlignment="Center" Grid.Column="1">
-                        <TextBlock HorizontalAlignment="Center" Grid.Row="0">Y</TextBlock>
-                        <Slider Grid.Row="1"
+                        <StackPanel HorizontalAlignment="Center" Grid.Column="1">
+                            <TextBlock HorizontalAlignment="Center" Grid.Row="0">Y</TextBlock>
+                            <Slider Grid.Row="1"
                                 Grid.Column="1"
                                 Height="200"
                                 Minimum="-180"
                                 Maximum="180"
                                 Value="{Binding YAngle, UpdateSourceTrigger=PropertyChanged}"
                                 AutoToolTipPlacement="TopLeft" Orientation="Vertical"/>
-                    </StackPanel>
+                        </StackPanel>
 
-                    <StackPanel HorizontalAlignment="Center" Grid.Column="2">
-                        <TextBlock HorizontalAlignment="Center" Grid.Row="0">Z</TextBlock>
-                        <Slider Grid.Row="1"
+                        <StackPanel HorizontalAlignment="Center" Grid.Column="2">
+                            <TextBlock HorizontalAlignment="Center" Grid.Row="0">Z</TextBlock>
+                            <Slider Grid.Row="1"
                                 Grid.Column="2"
                                 Height="200"
                                 Minimum="-180"
@@ -90,53 +90,96 @@
                                 Value="{Binding ZAngle, UpdateSourceTrigger=PropertyChanged}"
                                 AutoToolTipPlacement="TopLeft"
                                 Orientation="Vertical"/>
+                        </StackPanel>
+
+                    </Grid>
+                </Expander>
+
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Перенос">
+                    <Grid Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.1*"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0">X</TextBlock>
+                        <TextBox Text="{Binding TranslateX}" Grid.Row="0" Grid.Column="1"></TextBox>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0">Y</TextBlock>
+                        <TextBox Text="{Binding TranslateY}" Grid.Row="1" Grid.Column="1"></TextBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0">Z</TextBlock>
+                        <TextBox Text="{Binding TranslateZ}" Grid.Row="2" Grid.Column="1"></TextBox>
+
+                        <Button Command="{Binding TranslateCommand}" Grid.Row="3" Margin="0,5,0,0" Grid.Column="1">Перенести</Button>
+                    </Grid>
+                </Expander>
+
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Сдвиг">
+                    <StackPanel>
+                        <TextBox Text="{Binding Shear}" Margin="5"></TextBox>
+                        <Button Command="{Binding ShearCommand}" Margin="5,0,5,0">Сдвинуть</Button>
                     </StackPanel>
+                </Expander>
 
-                </Grid>
-            </Expander>
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="ОПП" ToolTip="Одноточечное перспективное преобразование">
+                    <StackPanel Margin="0,5,0,0">
+                        <TextBlock Margin="5,0,5,0" FontSize="12">Точка схода на оси +X:</TextBlock>
+                        <TextBox Text="{Binding Perspective}" Margin="5"></TextBox>
+                        <Button Command="{Binding PerspectiveCommand}" Margin="5,0,5,0">Спроецировать</Button>
+                        <Button Command="{Binding ReversePerspectiveCommand}" Margin="5,5,5,0">Отменить проецирование</Button>
+                    </StackPanel>
+                </Expander>
+                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Вписывание">
+                    <Grid Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
 
-            <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Перенос">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="0.1*"/>
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
+                        <TextBlock Margin="0,0,0,5" FontSize="12" Grid.Row="0" Grid.ColumnSpan="4">Координаты области</TextBlock>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0">X</TextBlock>
-                    <TextBox Text="{Binding TranslateX}" Grid.Row="0" Grid.Column="1"></TextBox>
+                        <TextBlock Grid.Row="1" Grid.Column="0">X1</TextBlock>
+                        <TextBox Text="{Binding AreaX1}" Width="60" HorizontalAlignment="Left" Grid.Row="1" Grid.Column="1"></TextBox>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0">Y</TextBlock>
-                    <TextBox Text="{Binding TranslateY}" Grid.Row="1" Grid.Column="1"></TextBox>
+                        <TextBlock Grid.Row="2" Grid.Column="0">Y1</TextBlock>
+                        <TextBox Text="{Binding AreaY1}" Width="60" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="1"></TextBox>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0">Z</TextBlock>
-                    <TextBox Text="{Binding TranslateZ}" Grid.Row="2" Grid.Column="1"></TextBox>
+                        <TextBlock Grid.Row="1" Grid.Column="2">X2</TextBlock>
+                        <TextBox Text="{Binding AreaX2}" Width="60" HorizontalAlignment="Left" Grid.Row="1" Grid.Column="3"></TextBox>
 
-                    <Button Command="{Binding TranslateCommand}" Grid.Row="3" Margin="0,5,0,0" Grid.Column="1">Перенести</Button>
-                </Grid>
-            </Expander>
+                        <TextBlock Grid.Row="2" Grid.Column="2">Y2</TextBlock>
+                        <TextBox Text="{Binding AreaY2}" Width="60" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="3"></TextBox>
 
-            <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Сдвиг">
-                <StackPanel>
-                    <TextBox Text="{Binding Shear}" Margin="5"></TextBox>
-                    <Button Command="{Binding ShearCommand}" Margin="5,0,5,0">Сдвинуть</Button>
-                </StackPanel>
-            </Expander>
-
-            <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="ОПП" ToolTip="Одноточечное перспективное преобразование">
-                <StackPanel>
-                    <TextBox Text="{Binding Perspective}" Margin="5"></TextBox>
-                    <Button Command="{Binding PerspectiveCommand}" Margin="5,0,5,0">Спроецировать</Button>
-                </StackPanel>
-            </Expander>
-        </StackPanel>
-
+                        <Button Command="{Binding MoveToAreaCommand}" Grid.Row="4" Grid.ColumnSpan="3" Margin="0,5,0,0" Grid.Column="1">Вписать</Button>
+                    </Grid>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+        <Canvas VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1">
+            <Rectangle Canvas.Bottom="{Binding AreaY1}"
+                       Canvas.Left="{Binding AreaX1}"
+                       Width="{Binding AreaWidth}"
+                       Height="{Binding AreaHeight}"
+                       
+                       Stroke="Black" StrokeThickness="2"  Fill="Aqua" Opacity="0.5"/>
+        </Canvas>
         <ItemsControl ItemsSource="{Binding Lines}" Grid.Column="1">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

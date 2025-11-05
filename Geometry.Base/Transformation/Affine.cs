@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
 
-namespace Geometry.Base
+namespace Geometry.Base.Transformation
 {
-    public class AffineTransformation
+    public class Affine
     {
         public static Matrix4x4 GetScaleMatrix(float xScale, float yScale, float zScale)
         {

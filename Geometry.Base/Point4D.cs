@@ -10,10 +10,19 @@ namespace Geometry.Base
         {
             Vector4 = new Vector4(x, y, z, 1);
         }
-        
+
         public void Transform(Matrix4x4 matrix)
         {
             this.Vector4 = Vector4.Transform(this.Vector4, matrix);
+        }
+
+        public void Normalize()
+        {
+            var w = this.Vector4.W;
+            this.Vector4 = new Vector4(this.Vector4.X / w,
+                                       this.Vector4.Y / w,
+                                       this.Vector4.Z / w,
+                                       1);
         }
     }
 }

@@ -12,10 +12,12 @@ namespace Geometry.Base
             foreach (var v in Vertices)
             {
                 v.Transform(matrix);
+                if (v.Vector4.W != 1)
+                    v.Normalize();
             }
         }
 
-        public (Point4D Min, Point4D Max) GetSizeRectangle()
+        public (float MinX, float MinY, float MaxX, float MaxY) GetSizeRectangle()
         {
             var minX = Vertices.Min(x => x.Vector4.X);
             var maxX = Vertices.Max(x => x.Vector4.X);
@@ -23,19 +25,7 @@ namespace Geometry.Base
             var minY = Vertices.Min(x => x.Vector4.Y);
             var maxY = Vertices.Max(x => x.Vector4.Y);
 
-            return (new Point4D(minX, minY,0), new Point4D(maxX, maxY, 0));
-        }
-
-        public void Normalize()
-        {
-            foreach (var v in Vertices)
-            {
-                var w = v.Vector4.W;
-                v.Vector4 = new Vector4(v.Vector4.X / w,
-                                        v.Vector4.Y / w,
-                                        v.Vector4.Z / w,
-                                        1);
-            }
+            return (minX, minY, maxX, maxY);
         }
     }
 }

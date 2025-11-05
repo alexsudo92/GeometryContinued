@@ -1,8 +1,10 @@
 ﻿using DynamicData;
 using Geometry.Base;
+using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace Geometry.UI.Services
@@ -13,85 +15,152 @@ namespace Geometry.UI.Services
         public IObservable<IChangeSet<Outline>> Lines => _lines.Connect();
 
         private Figure _figureData;
-        private List<Transform> _transforms;
+        private List<Transform> _history;
 
         public FigureService()
         {
             _lines = new SourceList<Outline>();
-            _transforms = new List<Transform>();
+            _history = new List<Transform>();
         }
 
-        public void UpdateFigureData(Figure figureData)
+        public void SetFigureData(Figure figureData)
         {
-            _figureData = figureData;
-            _transforms.Clear();
-            RenderFigure();
-        }
-
-        public void AddScaleMatrix(float scale)
-        {
-            if (scale != 0)
+            if (figureData != null)
             {
-                var m = AffineTransformation.GetScaleMatrix(scale);
-
-                if (scale > 1)
-                    _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.ScaleUp });
-
-                if (scale > 0 && scale < 1)
-                    _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.ScaleDown });
-
-                RenderFigure(m);
-            }
-        }
-
-        public void AddRotationMatrix(float angle, Vector4 axis)
-        {
-            if (angle != 0)
-            {
-                var m = AffineTransformation.GetRotationMatrix(angle, axis);
-                _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Rotation });
-
-                RenderFigure(m);
-            }
-        }
-
-        public void AddTranslationMatrix(Vector3 vector)
-        {
-            if (vector != Vector3.Zero)
-            {
-                var m = AffineTransformation.GetTranslationMatrix(vector);
-                _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Translation });
-
-                RenderFigure(m);
-            }
-        }
-
-        public void AddShearMatrix(float yx = 0, float xy = 0)
-        {
-            if (yx != 0 || xy != 0)
-            {
-                var m = AffineTransformation.GetShearMatrix(yx: yx, xy: xy);
-                _transforms.Add(new Transform { Matrix4X4 = m, TransformType = TransformType.Shear });
-
-                RenderFigure(m);
-            }
-        }
-
-        public void Projection(float p)
-        {
-            if (p != 0)
-            {
-                var m = PerspectiveTransformation.ToX(1/p);
-
-                _figureData.TransformAllVertices(m);
-                _figureData.Normalize();
-
+                _figureData = figureData;
+                _history.Clear();
                 RenderFigure();
             }
         }
 
-        private void Build()
+        public void ScaleFigure(float scale, bool shouldRender = true)
         {
+            if (scale != 0 && scale != 1f)
+            {
+                var m = Affine.GetScaleMatrix(scale);
+
+                if (scale > 1f)
+                    AddToHistrory(m, TransformType.ScaleUp);
+                if (scale > 0f && scale < 1f)
+                    AddToHistrory(m, TransformType.ScaleDown);
+
+                _figureData.TransformAllVertices(m);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void RotateFigure(float angle, Vector4 axis, bool shouldRender = true)
+        {
+            if (angle != 0)
+            {
+                var m = Affine.GetRotationMatrix(angle, axis);
+                AddToHistrory(m, TransformType.Rotation);
+                _figureData.TransformAllVertices(m);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void TranslateFigure(Vector3 vector, bool shouldRender = true)
+        {
+            if (vector != Vector3.Zero)
+            {
+                var m = Affine.GetTranslationMatrix(vector);
+                AddToHistrory(m, TransformType.Translation);
+                _figureData.TransformAllVertices(m);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void ShearFigure(float yx = 0, float xy = 0, bool shouldRender = true)
+        {
+            if (yx != 0 || xy != 0)
+            {
+                var m = Affine.GetShearMatrix(yx: yx, xy: xy);
+                AddToHistrory(m, TransformType.Shear);
+                _figureData.TransformAllVertices(m);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void ProjectFigureToX(float p, bool shouldRender = true)
+        {
+            if (p != 0)
+            {
+                ReverseProjectFigureToX(false);
+
+                var m = Perspective.ToX(1 / p);
+                AddToHistrory(m, TransformType.Perspective);
+                _figureData.TransformAllVertices(m);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void ReverseProjectFigureToX(bool shouldRender = true)
+        {
+            var last = _history
+                .FirstOrDefault(x => x.TransformType == TransformType.Perspective);
+
+            if (last != null)
+            {
+                var iM = last.Invert();
+                _figureData.TransformAllVertices(iM);
+                _history.Remove(last);
+
+                _figureData.TransformAllVertices(iM);
+
+                if (shouldRender)
+                    RenderFigure();
+            }
+        }
+
+        public void MoveToAndScale(float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
+        {
+            if ((areaX1 != 0 && areaY1 != 0) || (areaX2 != 0 && areaY2 != 0))
+            {
+                var (MinX, MinY, MaxX, MaxY) = _figureData.GetSizeRectangle();
+
+                var areaWidth = areaX2 - areaX1;
+                var areaHeight = areaY2 - areaY1;
+
+                var fWidth = MaxX - MinX;
+                var fHeight = MaxY - MinY;
+
+                var k = MathF.Min(areaWidth / fWidth, areaHeight / fHeight);
+                ScaleFigure(k, false);
+
+
+                (MinX, MinY, MaxX, MaxY) = _figureData.GetSizeRectangle();
+
+                var midX = (MinX + MaxX) / 2;
+                var midY = (MinY + MaxY) / 2;
+
+                var tX = (areaX2 + areaX1) / 2 - midX;
+                var tY = (areaY2 + areaY1) / 2 - midY;
+
+                var vector = new Vector3(tX, tY, 0);
+                TranslateFigure(vector, shouldRender);
+            }
+        }
+
+        private void AddToHistrory(Matrix4x4 m, TransformType transformType)
+        {
+            _history.Add(new Transform { TransformType = transformType, Matrix4X4 = m });
+        }
+
+        private void RenderFigure()
+        {
+            _lines.Clear();
+
             foreach (var e in _figureData.Edges)
             {
                 var startEdge = e[0];
@@ -106,28 +175,10 @@ namespace Geometry.UI.Services
                 _lines.Add(new Outline
                 {
                     X1 = startVertexVector.X,
-                    Y1 = startVertexVector.Y,
+                    Y1 = -startVertexVector.Y,
                     X2 = endVertexVector.X,
-                    Y2 = endVertexVector.Y
+                    Y2 = -endVertexVector.Y
                 });
-            }
-        }
-
-        private void Clear() =>
-            _lines.Clear();
-
-        private void RenderFigure()
-        {
-            Clear();
-            Build();
-        }
-
-        private void RenderFigure(Matrix4x4 m)
-        {
-            if (_figureData is not null)
-            {
-                _figureData.TransformAllVertices(m);
-                RenderFigure();
             }
         }
     }

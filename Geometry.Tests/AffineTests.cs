@@ -2,6 +2,7 @@
 using Geometry.Base;
 using System.Numerics;
 using Xunit.Abstractions;
+using Geometry.Base.Transformation;
 
 namespace Geometry.Tests
 {
@@ -41,7 +42,7 @@ namespace Geometry.Tests
 
             // Calculated
             var calcP = new Point4D(x, y, z);
-            var matrix = AffineTransformation.GetRotationMatrix(angle, Vector4.UnitY);
+            var matrix = Affine.GetRotationMatrix(angle, Vector4.UnitY);
             calcP.Transform(matrix);
             var calcPV = calcP.Vector4;
 
