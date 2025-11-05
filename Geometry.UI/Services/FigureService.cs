@@ -15,12 +15,12 @@ namespace Geometry.UI.Services
         public IObservable<IChangeSet<Outline>> Lines => _lines.Connect();
 
         private Figure _figureData;
-        private List<Transform> _history;
+        private readonly List<Transform> _history;
 
         public FigureService()
         {
             _lines = new SourceList<Outline>();
-            _history = new List<Transform>();
+            _history = [];
         }
 
         public void SetFigureData(Figure figureData)
@@ -66,15 +66,12 @@ namespace Geometry.UI.Services
 
         public void TranslateFigure(Vector3 vector, bool shouldRender = true)
         {
-            if (vector != Vector3.Zero)
-            {
-                var m = Affine.GetTranslationMatrix(vector);
-                AddToHistrory(m, TransformType.Translation);
-                _figureData.TransformAllVertices(m);
+            var m = Affine.GetTranslationMatrix(vector);
+            AddToHistrory(m, TransformType.Translation);
+            _figureData.TransformAllVertices(m);
 
-                if (shouldRender)
-                    RenderFigure();
-            }
+            if (shouldRender)
+                RenderFigure();
         }
 
         public void ShearFigure(float yx = 0, float xy = 0, bool shouldRender = true)

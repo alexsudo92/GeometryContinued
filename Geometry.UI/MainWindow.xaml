@@ -154,6 +154,7 @@
                             <RowDefinition/>
                             <RowDefinition/>
                             <RowDefinition/>
+                            <RowDefinition/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Margin="0,0,0,5" FontSize="12" Grid.Row="0" Grid.ColumnSpan="4">Координаты области</TextBlock>
@@ -170,13 +171,21 @@
                         <TextBlock Grid.Row="2" Grid.Column="2">Y2</TextBlock>
                         <TextBox Text="{Binding AreaY2}" Width="60" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="3"></TextBox>
 
-                        <Button Command="{Binding MoveToAreaCommand}" Grid.Row="4" Grid.ColumnSpan="3" Margin="0,5,0,0" Grid.Column="1">Вписать</Button>
+                        <CheckBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
+                                  IsChecked="True"
+                                  Command="{Binding ChangeAreaVisibilityCommand}"
+                                  CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
+                                  VerticalContentAlignment="Center"
+                                  HorizontalAlignment="Center">Показать область</CheckBox>
+                        
+                        <Button Command="{Binding MoveToAreaCommand}" Grid.Row="5" Grid.ColumnSpan="3" Margin="0,5,0,0" Grid.Column="1">Вписать</Button>
                     </Grid>
                 </Expander>
             </StackPanel>
         </ScrollViewer>
         <Canvas VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1">
-            <Rectangle Canvas.Bottom="{Binding AreaY1}"
+            <Rectangle Visibility="{Binding IsAreaVisible}"
+                       Canvas.Bottom="{Binding AreaY1}"
                        Canvas.Left="{Binding AreaX1}"
                        Width="{Binding AreaWidth}"
                        Height="{Binding AreaHeight}"

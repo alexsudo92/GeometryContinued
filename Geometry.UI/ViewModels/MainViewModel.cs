@@ -7,11 +7,13 @@ using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Windows;
 
 namespace Geometry.UI.ViewModels
 {
     public class MainViewModel : ReactiveObject
     {
+        private float _prevScale = 1;
         private float _scale = 1;
         private float _prevX;
         private float _prevY;
@@ -113,12 +115,13 @@ namespace Geometry.UI.ViewModels
         public ReactiveCommand<Unit, Unit> TranslateCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ShearCommand { get; set; }
         public ReactiveCommand<bool, Unit> PerspectiveCommand { get; set; }
+        public ReactiveCommand<bool, Unit> ChangeAreaVisibilityCommand { get; set; }
         public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
 
         private readonly ReadOnlyObservableCollection<FigureYaml> _figures;
         public ReadOnlyObservableCollection<FigureYaml> Figures => _figures;
 
-        private ReadOnlyObservableCollection<Outline> _lines;
+        private readonly ReadOnlyObservableCollection<Outline> _lines;
         public ReadOnlyObservableCollection<Outline> Lines => _lines;
 
         private FigureYaml _selectedFigure;
@@ -135,7 +138,14 @@ namespace Geometry.UI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isAvailable, value);
         }
 
-        private FigureService _figureService;
+        private Visibility _isAreaVisible = Visibility.Visible;
+        public Visibility IsAreaVisible
+        {
+            get => _isAreaVisible;
+            set => this.RaiseAndSetIfChanged(ref _isAreaVisible, value);
+        }
+
+        private readonly FigureService _figureService;
         private readonly YamlService _yamlService;
 
         public MainViewModel(YamlService yamlService, FigureService figureService)
@@ -165,7 +175,11 @@ namespace Geometry.UI.ViewModels
 
             this.WhenAnyValue(x => x.Scale)
                 .Throttle(TimeSpan.FromMilliseconds(100))
-                .Subscribe(x => { _figureService.ScaleFigure(Scale); });
+                .Subscribe(x =>
+                {
+                    _figureService.ScaleFigure(_scale/_prevScale);
+                    _prevScale = x;
+                });
 
             this.WhenAnyValue(x => x.XAngle)
                 //.Throttle(TimeSpan.FromMilliseconds(100))
@@ -205,19 +219,15 @@ namespace Geometry.UI.ViewModels
 
             ScaleUpCommand = ReactiveCommand.Create(() =>
             {
-                if (Scale < 1f)
-                    Scale = 1.1f;
-                else
-                    Scale += 0.1f;
+                Scale += _scale / _prevScale;
             });
 
             ScaleDownCommand = ReactiveCommand.Create(() =>
             {
-                if (Scale > 1f)
+                if (_prevScale <= 1f)
                     Scale = 1f;
-
-                if (Scale <= 1f)
-                    Scale -= 0.1f;
+                else
+                    Scale -= _scale / _prevScale;
             });
 
             TranslateCommand = ReactiveCommand.Create(() =>
@@ -241,6 +251,14 @@ namespace Geometry.UI.ViewModels
             MoveToAreaCommand = ReactiveCommand.Create(() =>
             {
                 _figureService.MoveToAndScale(AreaX1, AreaY1, AreaX2, AreaY2);
+            });
+
+            ChangeAreaVisibilityCommand = ReactiveCommand.Create((bool isChecked) =>
+            {
+                if (isChecked)
+                    IsAreaVisible = Visibility.Visible;
+                else
+                    IsAreaVisible = Visibility.Hidden;
             });
         }
 
