@@ -118,7 +118,7 @@ namespace Geometry.UI.Services
             }
         }
 
-        public void MoveToAndScale(float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
+        public void ScaleAndMoveTo(float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
         {
             if ((areaX1 != 0 && areaY1 != 0) || (areaX2 != 0 && areaY2 != 0))
             {

@@ -13,7 +13,6 @@ namespace Geometry.UI.ViewModels
 {
     public class MainViewModel : ReactiveObject
     {
-        private float _prevScale = 1;
         private float _scale = 1;
         private float _prevX;
         private float _prevY;
@@ -26,10 +25,10 @@ namespace Geometry.UI.ViewModels
         private float _tZ;
         private float _shear;
         private float _perspective;
-        private float _areaX1;
-        private float _areaY1;
-        private float _areaX2;
-        private float _areaY2;
+        private float _areaX1 = -700;
+        private float _areaY1 = -500;
+        private float _areaX2 = 700;
+        private float _areaY2 = 500;
         private float _areaWidth;
         private float _areaHeight;
 
@@ -110,11 +109,10 @@ namespace Geometry.UI.ViewModels
         }
 
 
-        public ReactiveCommand<Unit, Unit> ScaleUpCommand { get; set; }
-        public ReactiveCommand<Unit, Unit> ScaleDownCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> ChangeScaleCommand { get; set; }
         public ReactiveCommand<Unit, Unit> TranslateCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ShearCommand { get; set; }
-        public ReactiveCommand<bool, Unit> PerspectiveCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> PerspectiveCommand { get; set; }
         public ReactiveCommand<bool, Unit> ChangeAreaVisibilityCommand { get; set; }
         public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
 
@@ -138,7 +136,7 @@ namespace Geometry.UI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isAvailable, value);
         }
 
-        private Visibility _isAreaVisible = Visibility.Visible;
+        private Visibility _isAreaVisible = Visibility.Hidden;
         public Visibility IsAreaVisible
         {
             get => _isAreaVisible;
@@ -167,19 +165,15 @@ namespace Geometry.UI.ViewModels
             this.WhenAnyValue(x => x.SelectedFigure)
                  .Subscribe(x =>
                  {
+                     ResetValues();
                      IsAvailable = SelectedFigure is not null;
                      if (x is not null)
                          _figureService.SetFigureData(x.AsFigure());
-                     ResetValues();
                  });
 
             this.WhenAnyValue(x => x.Scale)
-                .Throttle(TimeSpan.FromMilliseconds(100))
-                .Subscribe(x =>
-                {
-                    _figureService.ScaleFigure(_scale/_prevScale);
-                    _prevScale = x;
-                });
+                .Throttle(TimeSpan.FromMilliseconds(200))
+                .Subscribe(x => Scale = x);
 
             this.WhenAnyValue(x => x.XAngle)
                 //.Throttle(TimeSpan.FromMilliseconds(100))
@@ -217,17 +211,9 @@ namespace Geometry.UI.ViewModels
             this.WhenAnyValue(x => x.AreaY2)
                 .Subscribe(x => AreaHeight = x - this.AreaY1);
 
-            ScaleUpCommand = ReactiveCommand.Create(() =>
+            ChangeScaleCommand = ReactiveCommand.Create(() =>
             {
-                Scale += _scale / _prevScale;
-            });
-
-            ScaleDownCommand = ReactiveCommand.Create(() =>
-            {
-                if (_prevScale <= 1f)
-                    Scale = 1f;
-                else
-                    Scale -= _scale / _prevScale;
+                _figureService.ScaleFigure(Scale);
             });
 
             TranslateCommand = ReactiveCommand.Create(() =>
@@ -240,17 +226,14 @@ namespace Geometry.UI.ViewModels
                 _figureService.ShearFigure(yx: Shear);
             });
 
-            PerspectiveCommand = ReactiveCommand.Create((bool isChecked) =>
+            PerspectiveCommand = ReactiveCommand.Create(() =>
             {
-                if (isChecked)
-                    _figureService.ProjectFigureToX(Perspective);
-                else
-                    _figureService.ReverseProjectFigureToX();
+                _figureService.ProjectFigureToX(Perspective);
             });
 
             MoveToAreaCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.MoveToAndScale(AreaX1, AreaY1, AreaX2, AreaY2);
+                _figureService.ScaleAndMoveTo(AreaX1, AreaY1, AreaX2, AreaY2);
             });
 
             ChangeAreaVisibilityCommand = ReactiveCommand.Create((bool isChecked) =>

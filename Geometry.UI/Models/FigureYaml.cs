@@ -1,12 +1,12 @@
 ﻿using Geometry.Base;
 using System.Collections.Generic;
 
-namespace Geometry.UI.Services
+namespace Geometry.UI.Models
 {
     public class FigureYaml
     {
         public int Id { get; set; }
-        public string Name { get;set; }
+        public string Name { get; set; }
         public List<List<float>> Vertices { get; set; }
         public List<List<int>> Edges { get; set; }
 

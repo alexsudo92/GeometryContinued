@@ -43,9 +43,18 @@ namespace Geometry.Base.Transformation
         {
             return new Matrix4x4
             {
-                M11 = 1, M12 = xy, M13 = xz, M14 = 0,
-                M21 = yx, M22 = 1, M23 = yz, M24 = 0,
-                M31 = zx, M32 = zy, M33 = 1, M34 = 0,
+                M11 = 1,
+                M12 = xy,
+                M13 = xz,
+                M14 = 0,
+                M21 = yx,
+                M22 = 1,
+                M23 = yz,
+                M24 = 0,
+                M31 = zx,
+                M32 = zy,
+                M33 = 1,
+                M34 = 0,
                 M41 = 0,
                 M42 = 0,
                 M43 = 0,

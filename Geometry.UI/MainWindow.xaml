@@ -38,11 +38,10 @@
                 <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
                 <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Масштабирование">
-                    <DockPanel Margin="0,5,0,5" HorizontalAlignment="Left">
-                        <TextBox Text="{Binding Scale, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" Height="24" Width="150" DockPanel.Dock="Left"/>
-                        <Button Command="{Binding ScaleUpCommand}" Width="25" FontSize="6" DockPanel.Dock="Top">▲</Button>
-                        <Button Command="{Binding ScaleDownCommand}" Width="25" FontSize="6" DockPanel.Dock="Bottom">▼</Button>
-                    </DockPanel>
+                    <StackPanel>
+                        <TextBox  Margin="5" Text="{Binding Scale, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button  Margin="5,0,5,0" Command="{Binding ChangeScaleCommand}">Масштабировать</Button>
+                    </StackPanel>
                 </Expander>
 
                 <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Поворот">
@@ -134,10 +133,7 @@
                         <TextBlock Margin="5,0,5,0" FontSize="12">Точка схода на оси +X:</TextBlock>
                         <TextBox Text="{Binding Perspective}" Margin="5"></TextBox>
 
-                        <CheckBox Command="{Binding PerspectiveCommand}"
-                                  CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
-                                  VerticalContentAlignment="Center"
-                                  HorizontalAlignment="Center">Спроецировать</CheckBox>
+                        <Button Margin="5" Command="{Binding PerspectiveCommand}">Спроектировать</Button>
                     </StackPanel>
                 </Expander>
                 <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Вписывание">
@@ -172,18 +168,18 @@
                         <TextBox Text="{Binding AreaY2}" Width="60" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="3"></TextBox>
 
                         <CheckBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3"
-                                  IsChecked="True"
+                                  IsChecked="False"
                                   Command="{Binding ChangeAreaVisibilityCommand}"
                                   CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"
                                   VerticalContentAlignment="Center"
                                   HorizontalAlignment="Center">Показать область</CheckBox>
-                        
+
                         <Button Command="{Binding MoveToAreaCommand}" Grid.Row="5" Grid.ColumnSpan="3" Margin="0,5,0,0" Grid.Column="1">Вписать</Button>
                     </Grid>
                 </Expander>
             </StackPanel>
         </ScrollViewer>
-        <Canvas VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1">
+        <Canvas Panel.ZIndex="1" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1">
             <Rectangle Visibility="{Binding IsAreaVisible}"
                        Canvas.Bottom="{Binding AreaY1}"
                        Canvas.Left="{Binding AreaX1}"
@@ -191,7 +187,7 @@
                        Height="{Binding AreaHeight}"
                        Stroke="Black" StrokeThickness="2"  Fill="Aqua" Opacity="0.5"/>
         </Canvas>
-        <ItemsControl ItemsSource="{Binding Lines}" Grid.Column="1">
+        <ItemsControl Background="WhiteSmoke" ItemsSource="{Binding Lines}" Grid.Column="1">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <Canvas VerticalAlignment="Center" HorizontalAlignment="Center"/>

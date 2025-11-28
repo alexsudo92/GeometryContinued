@@ -1,8 +1,7 @@
-﻿using Xunit;
-using Geometry.Base;
+﻿using Geometry.Base;
+using Geometry.Base.Transformation;
 using System.Numerics;
 using Xunit.Abstractions;
-using Geometry.Base.Transformation;
 
 namespace Geometry.Tests
 {
@@ -37,7 +36,7 @@ namespace Geometry.Tests
             var my = p.X * 0 + p.Y + p.Z * 0 + p.W * 0;
             var mz = -(p.X * sin) + p.Y * 0 + p.Z * cos + p.W * 0;
             var mw = p.X * 0 + p.Y * 0 + p.Z * 0 + p.W * 1;
-            
+
             var rotP = new Vector4(mx, my, mz, mw);
 
             // Calculated

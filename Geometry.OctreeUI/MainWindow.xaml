@@ -1,0 +1,80 @@
+﻿<Window x:Class="Geometry.OctreeUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Geometry.OctreeUI"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Панель управления -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="10">
+                <GroupBox Header="Управление" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <TextBlock Text="Минимальный размер октанта:" Margin="0,5"/>
+                        <Slider x:Name="MinSizeSlider" Minimum="0.1" Maximum="2.0" Value="1" 
+                               TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,5"/>
+                        <TextBlock x:Name="MinSizeText" Text="1" HorizontalAlignment="Center"/>
+
+                        <Button x:Name="RefreshButton" Content="Обновить визуализацию" 
+                               Click="RefreshButton_Click" Margin="0,10"/>
+
+                        <CheckBox x:Name="ShowOctreeCheckBox" Content="Показывать Octree" IsChecked="True" Margin="0,5"/>
+                        <CheckBox x:Name="ShowObjectsCheckBox" Content="Показывать объекты" IsChecked="True" Margin="0,5"/>
+                        <CheckBox x:Name="ShowPointsCheckBox" Content="Показывать тестовые точки" IsChecked="True" Margin="0,5"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Булевы операции" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <Button x:Name="UnionButton" Content="Объединение" Click="UnionButton_Click" Margin="0,2"/>
+                        <Button x:Name="SubtractButton" Content="Вычитание (Сфера - Параллелепипед)" 
+                               Click="SubtractButton_Click" Margin="0,2"/>
+                        <Button x:Name="IntersectButton" Content="Пересечение" Click="IntersectButton_Click" Margin="0,2"/>
+                        <Button x:Name="ResetButton" Content="Сброс к исходным" Click="ResetButton_Click" Margin="0,10,0,2"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Информация" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <TextBlock x:Name="VolumeInfoText" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="BooleanOpText" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Тестовые точки" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <Button x:Name="TestPointsButton" Content="Проверить точки" Margin="0,2"/>
+                        <TextBlock x:Name="PointsResultText" TextWrapping="Wrap" Margin="0,5"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Область визуализации -->
+        <Viewport3D Grid.Column="1" x:Name="MainViewport">
+            <!-- Камера -->
+            <Viewport3D.Camera>
+                <PerspectiveCamera Position="20,20,20" LookDirection="-1,-1,-1" FieldOfView="45"/>
+            </Viewport3D.Camera>
+
+            <!-- Освещение -->
+            <ModelVisual3D>
+                <ModelVisual3D.Content>
+                    <AmbientLight Color="White"/>
+                </ModelVisual3D.Content>
+            </ModelVisual3D>
+            <ModelVisual3D>
+                <ModelVisual3D.Content>
+                    <DirectionalLight Color="White" Direction="-1,-1,-1"/>
+                </ModelVisual3D.Content>
+            </ModelVisual3D>
+        </Viewport3D>
+    </Grid>
+</Window>
