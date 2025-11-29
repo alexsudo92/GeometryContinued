@@ -7,7 +7,7 @@ namespace Geometry.Base.Octree
     {
         public OctreeNode Root { get; private set; }
         public BoundingBox Bounds => Root.Bounds;
-        private float _minOctantSize;
+        private readonly float _minOctantSize;
 
         public Octree(BoundingBox bounds, float minOctantSize)
         {
@@ -20,7 +20,7 @@ namespace Geometry.Base.Octree
             var size = node.Bounds.Size;
 
             // Если размер октанта меньше минимального, делаем листом
-            if (size.X <= _minOctantSize && size.Y <= _minOctantSize && size.Z <= _minOctantSize)
+            if (size <= _minOctantSize)
             {
                 node.Children = null;
                 return;
@@ -28,20 +28,21 @@ namespace Geometry.Base.Octree
 
             // Создаем 8 дочерних узлов
             node.Children = new OctreeNode[8];
-            var childSize = size * 0.5f;
-            var parentCenter = node.Bounds.Center;
-            var parentExtents = node.Bounds.Extents * 0.5f;
+            var childrenSize = size / 4f;
 
             for (int i = 0; i < 8; i++)
             {
                 var offset = new Vector3(
-                    (i & 1) == 0 ? -parentExtents.X : parentExtents.X,
-                    (i & 2) == 0 ? -parentExtents.Y : parentExtents.Y,
-                    (i & 4) == 0 ? -parentExtents.Z : parentExtents.Z
+                    (i & 1) == 0 ? -childrenSize : childrenSize,
+                    (i & 2) == 0 ? -childrenSize : childrenSize,
+                    (i & 4) == 0 ? -childrenSize : childrenSize
                 );
 
+                var childBoxSize = size / 2f;
+                var parentCenter = node.Bounds.Center;
                 var childCenter = parentCenter + offset;
-                var childBounds = new BoundingBox(childCenter, childSize);
+
+                var childBounds = new BoundingBox(childCenter, childBoxSize);
                 node.Children[i] = new OctreeNode(childBounds);
 
                 BuildTree(node.Children[i]);
@@ -84,7 +85,7 @@ namespace Geometry.Base.Octree
         {
             if (node.IsLeaf)
             {
-                return node.IsSolid ? node.Bounds.Size.X * node.Bounds.Size.Y * node.Bounds.Size.Z : 0;
+                return node.IsSolid ? node.Bounds.Size * node.Bounds.Size * node.Bounds.Size : 0;
             }
 
             float volume = 0;

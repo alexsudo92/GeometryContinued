@@ -5,22 +5,17 @@ namespace Geometry.Base.Octree
     // Пространство для размещения нескольких Octree
     public class OctreeSpace
     {
-        private readonly List<Octree> _octrees;
+        public readonly List<Octree> Octrees;
 
         public OctreeSpace()
         {
-            _octrees = [];
-        }
-
-        public void AddOctree(Octree octree)
-        {
-            _octrees.Add(octree);
+            Octrees = [];
         }
 
         public float GetTotalVolume()
         {
-            float volume = 0;
-            foreach (var octree in _octrees)
+            var volume = 0f;
+            foreach (var octree in Octrees)
             {
                 volume += octree.GetVolume();
             }
@@ -53,7 +48,8 @@ namespace Geometry.Base.Octree
         public static Octree Intersect(Octree tree1, Octree tree2, float minOctantSize)
         {
             var bounds = GetIntersectionBounds(tree1.Bounds, tree2.Bounds);
-            if (bounds.Size == Vector3.Zero)
+
+            if (bounds.Size <= 0.0001f) // Epsilon
                 return new Octree(new BoundingBox(tree1.Bounds.Center, 0), minOctantSize);
 
             var result = new Octree(bounds, minOctantSize);

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Geometry.OctreeUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="800">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300"/>
@@ -24,20 +24,16 @@
 
                         <Button x:Name="RefreshButton" Content="Обновить визуализацию" 
                                Click="RefreshButton_Click" Margin="0,10"/>
-
-                        <CheckBox x:Name="ShowOctreeCheckBox" Content="Показывать Octree" IsChecked="True" Margin="0,5"/>
-                        <CheckBox x:Name="ShowObjectsCheckBox" Content="Показывать объекты" IsChecked="True" Margin="0,5"/>
-                        <CheckBox x:Name="ShowPointsCheckBox" Content="Показывать тестовые точки" IsChecked="True" Margin="0,5"/>
+                        <Button x:Name="CameraReset" Click="CameraReset_Click">Сбросить камеру</Button>
                     </StackPanel>
                 </GroupBox>
 
                 <GroupBox Header="Булевы операции" Margin="0,0,0,10">
                     <StackPanel Margin="5">
-                        <Button x:Name="UnionButton" Content="Объединение" Click="UnionButton_Click" Margin="0,2"/>
-                        <Button x:Name="SubtractButton" Content="Вычитание (Сфера - Параллелепипед)" 
-                               Click="SubtractButton_Click" Margin="0,2"/>
-                        <Button x:Name="IntersectButton" Content="Пересечение" Click="IntersectButton_Click" Margin="0,2"/>
-                        <Button x:Name="ResetButton" Content="Сброс к исходным" Click="ResetButton_Click" Margin="0,10,0,2"/>
+                        <Button x:Name="UnionButton" Content="Объединение" Margin="0,2"/>
+                        <Button x:Name="SubtractButton" Content="Вычитание (Сфера - Параллелепипед)" Margin="0,2"/>
+                        <Button x:Name="IntersectButton" Content="Пересечение" Margin="0,2"/>
+                        <Button x:Name="ResetButton" Content="Сброс к исходным" Margin="0,10,0,2"/>
                     </StackPanel>
                 </GroupBox>
 
@@ -50,21 +46,21 @@
 
                 <GroupBox Header="Тестовые точки" Margin="0,0,0,10">
                     <StackPanel Margin="5">
-                        <Button x:Name="TestPointsButton" Content="Проверить точки" Margin="0,2"/>
-                        <TextBlock x:Name="PointsResultText" TextWrapping="Wrap" Margin="0,5"/>
+
                     </StackPanel>
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
 
         <!-- Область визуализации -->
-        <Viewport3D Grid.Column="1" x:Name="MainViewport">
-            <!-- Камера -->
-            <Viewport3D.Camera>
-                <PerspectiveCamera Position="20,20,20" LookDirection="-1,-1,-1" FieldOfView="45"/>
-            </Viewport3D.Camera>
+        <Viewport3D
+            MouseDown="Viewport_MouseDown"
+            MouseUp="Viewport_MouseUp" 
+            MouseMove="Viewport_MouseMove"
+            MouseWheel="Viewport_MouseWheel"
+            Grid.Column="1"
+            x:Name="MainViewport">
 
-            <!-- Освещение -->
             <ModelVisual3D>
                 <ModelVisual3D.Content>
                     <AmbientLight Color="White"/>
@@ -72,7 +68,7 @@
             </ModelVisual3D>
             <ModelVisual3D>
                 <ModelVisual3D.Content>
-                    <DirectionalLight Color="White" Direction="-1,-1,-1"/>
+                    <DirectionalLight Color="White" Direction="1,-1,-1"/>
                 </ModelVisual3D.Content>
             </ModelVisual3D>
         </Viewport3D>
