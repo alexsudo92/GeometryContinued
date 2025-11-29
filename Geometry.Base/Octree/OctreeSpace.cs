@@ -53,6 +53,7 @@ namespace Geometry.Base.Octree
                 return new Octree(new BoundingBox(tree1.Bounds.Center, 0), minOctantSize);
 
             var result = new Octree(bounds, minOctantSize);
+            result.BuildTree(result.Root);
 
             // Сэмплируем пространство для определения пересечения
             SampleSpaceForBooleanOp(result, tree1, tree2, (p1, p2) => p1 && p2);

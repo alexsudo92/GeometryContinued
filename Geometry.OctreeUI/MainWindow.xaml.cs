@@ -1,5 +1,6 @@
 ﻿using Geometry.Base.Octree;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
@@ -43,6 +44,7 @@ namespace Geometry.OctreeUI
             InitializeComponent();
             MinSizeSlider.ValueChanged += MinSizeSlider_ValueChanged;
             InitializeCamera();
+            InitializeOctrees();
             RefreshVisualization();
         }
         private void InitializeCamera()
@@ -61,47 +63,39 @@ namespace Geometry.OctreeUI
         {
             //_currentMinSize = (float)MinSizeSlider.Value;
 
-            _currentMinSize = 2f;
+            _currentMinSize = 1f;
 
-            var sphereBounds = new BoundingBox(new Vector3(0, 0, 0), 20f);
+            var pos1 = new Vector3(0, 0, 0);
+            var r1 = 4f;
+            var sphereBounds = new BoundingBox(pos1, r1*2f);
             _sphereTree = new Octree(sphereBounds, _currentMinSize);
             _sphereTree.BuildTree(_sphereTree.Root);
-            _sphereTree.SetObject(GeometricPrimitives.CreateSphere(new Vector3(0, 0, 0), 10f));
+            _sphereTree.SetObject(GeometricPrimitives.CreateSphere(pos1, r1));
 
-            //var sphereBounds2 = new BoundingBox(new Vector3(0, 0, 0), 4f);
-            //var sphereTree2 = new Octree(sphereBounds2, _currentMinSize);
-            //sphereTree2.BuildTree(sphereTree2.Root);
-            //sphereTree2.SetObject(GeometricPrimitives.CreateSphere(new Vector3(0, 0, 0), 4f));
+            var pos2 = new Vector3(0, 3f, 0);
+            var size2 = new Vector3(4f, 4f, 4f);
+            var sphereBounds2 = new BoundingBox(pos2, size2.Y);
+            _boxTree = new Octree(sphereBounds2, _currentMinSize);
+            _boxTree.BuildTree(_boxTree.Root);
+            _boxTree.SetObject(GeometricPrimitives.CreateBox(pos2, size2));
 
             _space = new OctreeSpace();
             _space.Octrees.Add(_sphereTree);
-            //_space.Octrees.Add(sphereTree2);
+            _space.Octrees.Add(_boxTree);
         }
 
         private void RefreshVisualization()
         {
             MainViewport.Children.Clear();
-            InitializeOctrees();
+            //InitializeOctrees();
             VisualizeSpace(_space);
-            //UpdateInfoText();
-        }
-
-        private float GetMinimumCube(float size)
-        {
-            var minSize = size;
-            while (minSize > _currentMinSize)
-            {
-                minSize /= 2;
-            }
-
-            return minSize;
+            UpdateInfoText();
         }
 
         private void VisualizeSpace(OctreeSpace space)
         {
             space.Octrees.ForEach((s) =>
             {
-                //var minCubeSize = GetMinimumCube(s.Root.Bounds.Size);
                 _group = GenerateCube(_currentMinSize);
                 VisualizeOctree(s.Root);
             });
@@ -186,9 +180,22 @@ namespace Geometry.OctreeUI
 
         private void UpdateInfoText()
         {
-            string volumeInfo = $"Объем сферы: {_sphereTree.GetVolume():F2}\n" +
-                              //$"Объем параллелепипеда: {_boxTree.GetVolume():F2}\n" +
-                              $"Общий объем: {_space.GetTotalVolume():F2}";
+            var volumeList = new List<float>();
+
+            _space.Octrees.ForEach((s) =>
+            {
+                var v = s.GetVolume();
+                volumeList.Add(v);
+            });
+
+            var volumeInfo = "";
+
+            volumeList.ForEach((v) =>
+            {
+                volumeInfo += $"{v:F2}\n";
+            });
+
+            volumeInfo += $"\n{_space.GetTotalVolume():F2}\n";
 
             VolumeInfoText.Text = volumeInfo;
         }
@@ -360,11 +367,13 @@ namespace Geometry.OctreeUI
         //    RefreshVisualization();
         //}
 
-        //private void IntersectButton_Click(object sender, RoutedEventArgs e)
-        //{
-        //    _currentBooleanTree = OctreeSpace.Intersect(_sphereTree, _boxTree, _currentMinSize);
-        //    RefreshVisualization();
-        //}
+        private void IntersectButton_Click(object sender, RoutedEventArgs e)
+        {
+            var tree = OctreeSpace.Intersect(_sphereTree, _boxTree, _currentMinSize);
+            _space.Octrees.Clear();
+            _space.Octrees.Add(tree);
+            RefreshVisualization();
+        }
 
         //private void ResetButton_Click(object sender, RoutedEventArgs e)
         //{
