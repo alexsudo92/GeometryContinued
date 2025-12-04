@@ -119,22 +119,14 @@ namespace Geometry.Base.Octree
             }
         }
 
-        public void Cleanup()
+        public void Optimize()
         {
-            CleanupRecursive(Root);
-        }
-
-        public void OptimizeTree()
-        {
-            // Вызываем Cleanup несколько раз для полной оптимизации
-            // (так как объединение на одном уровне может создать условия для объединения на уровне выше)
             bool changed;
             do
             {
                 changed = false;
                 var oldRoot = Root;
-                Cleanup();
-                changed = !ReferenceEquals(oldRoot, Root) || HasStructureChanged(oldRoot, Root);
+                CleanupRecursive(Root); changed = !ReferenceEquals(oldRoot, Root) || HasStructureChanged(oldRoot, Root);
             }
             while (changed);
         }

@@ -59,7 +59,208 @@ namespace Geometry.OctreeUI
         private void RefreshVisualization()
         {
             MainViewport.Children.Clear();
-            VisualizeSpace(_space);
+            //VisualizeSpace(_space);
+            int maxDepth = 8; // например, 8 уровней глубины
+            VisualizeSpaceLayered(_space, maxDepth);
+        }
+
+
+        private void VisualizeSpaceLayered(OctreeSpace space, int maxDepth)
+        {
+            // Очищаем предыдущую визуализацию
+            MainViewport.Children.Clear();
+            _cache.Clear();
+
+            // Рендерим слой за слоем
+            for (int depth = 0; depth <= maxDepth; depth++)
+            {
+                // Словарь для группировки кубов одного размера
+                var sizeGroups = new Dictionary<Vector3, List<Vector3>>();
+
+                // Обходим все октодеревья
+                space.Octrees.ForEach(s =>
+                {
+                    CollectNodesByDepth(s.Root, depth, 0, sizeGroups);
+                });
+
+                // Рендерим меши для каждого размера кубов
+                foreach (var kvp in sizeGroups)
+                {
+                    if (kvp.Value.Count > 0)
+                    {
+                        RenderLayerMeshOptimized(kvp.Key, kvp.Value, depth);
+                    }
+                }
+            }
+        }
+
+        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth,
+            Dictionary<Vector3, List<Vector3>> sizeGroups)
+        {
+            // Если достигли нужной глубины и узел подходит для рендеринга
+            if (currentDepth == targetDepth)
+            {
+                if (node.IsSolid && !node.IsRendered)
+                {
+                    // Проверяем, нужно ли рендерить этот узел отдельно
+                    if (ShouldRenderNode(node))
+                    {
+                        var size = node.Bounds.Size;
+                        var center = node.Bounds.Center;
+
+                        if (!sizeGroups.ContainsKey(size))
+                        {
+                            sizeGroups[size] = new List<Vector3>();
+                        }
+
+                        sizeGroups[size].Add(center * 2f);
+                        node.IsRendered = true;
+                    }
+                }
+            }
+            else if (currentDepth < targetDepth && node.Children != null)
+            {
+                // Рекурсивно обходим детей
+                foreach (var child in node.Children)
+                {
+                    if (child != null)
+                    {
+                        CollectNodesByDepth(child, targetDepth, currentDepth + 1, sizeGroups);
+                    }
+                }
+            }
+        }
+
+        private bool ShouldRenderNode(OctreeNode node)
+        {
+            // Если узел листовой и solid
+            if (node.Children == null)
+                return node.IsSolid;
+
+            // Если все дети solid и не отрендерены отдельно
+            var allChildrenSolid = true;
+            var anyChildRendered = false;
+
+            foreach (var child in node.Children)
+            {
+                if (child == null || !child.IsSolid)
+                {
+                    allChildrenSolid = false;
+                }
+                if (child != null && child.IsRendered)
+                {
+                    anyChildRendered = true;
+                }
+            }
+
+            return allChildrenSolid && !anyChildRendered;
+        }
+
+        private Color GetDepthColor(int depth)
+        {
+            // Градиент от синего (глубокие слои) к красному (поверхностные слои)
+            var hue = (float)depth / 10f; // предполагаем максимум 10 слоев
+            hue = Math.Max(0, Math.Min(1, hue));
+
+            // Синий -> Фиолетовый -> Красный
+            var r = (byte)(255 * hue);
+            var g = (byte)(0);
+            var b = (byte)(255 * (1 - hue));
+
+            return Color.FromArgb(255, r, g, b);
+        }
+
+        // Альтернативная версия с использованием кэширования базовых кубов
+        private void RenderLayerMeshOptimized(Vector3 size, List<Vector3> centers, int depth)
+        {
+            if (centers.Count == 0) return;
+
+            // Создаем один большой меш для всех кубов этого размера
+            var mesh = new MeshGeometry3D();
+
+            // Получаем или создаем базовую геометрию куба из кэша
+            if (!_cache.TryGetValue(size, out var baseCubeModelGroup))
+            {
+                baseCubeModelGroup = GenerateCube(size);
+                _cache.Add(size, baseCubeModelGroup);
+            }
+
+            // Получаем геометрию из Model3DGroup
+            var baseGeometry = GetGeometryFromModelGroup(baseCubeModelGroup);
+
+            // Для каждого центра добавляем трансформированную копию базового куба
+            foreach (var center in centers)
+            {
+                AddTransformedGeometry(mesh, baseGeometry, center);
+            }
+
+            // Создаем материал с учетом глубины слоя
+            var color = GetDepthColor(depth);
+            var material = new DiffuseMaterial(new SolidColorBrush(color));
+            var geometryModel = new GeometryModel3D(mesh, material);
+
+            // Добавляем освещение
+            var group = new Model3DGroup();
+            group.Children.Add(geometryModel);
+            group.Children.Add(new AmbientLight(Colors.White));
+            group.Children.Add(new DirectionalLight(Colors.White, new Vector3D(-1, -1, -1)));
+
+            var visual = new ModelVisual3D { Content = group };
+            MainViewport.Children.Add(visual);
+        }
+
+        private MeshGeometry3D GetGeometryFromModelGroup(Model3DGroup modelGroup)
+        {
+            // Извлекаем MeshGeometry3D из Model3DGroup
+            foreach (var model in modelGroup.Children)
+            {
+                if (model is GeometryModel3D geometryModel && geometryModel.Geometry is MeshGeometry3D mesh)
+                {
+                    return mesh;
+                }
+            }
+
+            // Если не нашли, создаем новый
+            return new MeshGeometry3D();
+        }
+
+        private void AddTransformedGeometry(MeshGeometry3D targetMesh, MeshGeometry3D sourceGeometry, Vector3 translation)
+        {
+            var baseIndex = targetMesh.Positions.Count;
+
+            // Добавляем вершины со смещением
+            foreach (var position in sourceGeometry.Positions)
+            {
+                targetMesh.Positions.Add(new Point3D(
+                    position.X + translation.X,
+                    position.Y + translation.Y,
+                    position.Z + translation.Z
+                ));
+            }
+
+            // Добавляем индексы с учетом смещения
+            foreach (var index in sourceGeometry.TriangleIndices)
+            {
+                targetMesh.TriangleIndices.Add(baseIndex + index);
+            }
+
+            // Если есть нормали, добавляем их тоже
+            if (sourceGeometry.Normals != null && sourceGeometry.Normals.Count > 0)
+            {
+                foreach (var normal in sourceGeometry.Normals)
+                {
+                    targetMesh.Normals.Add(normal);
+                }
+            }
+
+            // Если есть текстурные координаты, добавляем их
+            if (sourceGeometry.TextureCoordinates != null && sourceGeometry.TextureCoordinates.Count > 0)
+            {
+                foreach (var texCoord in sourceGeometry.TextureCoordinates)
+                {
+                    targetMesh.TextureCoordinates.Add(texCoord);
+                }
+            }
         }
 
         private void VisualizeSpace(OctreeSpace space)
@@ -169,10 +370,6 @@ namespace Geometry.OctreeUI
             var r = 255 * MathF.Tan(size.X);
             var b = 255 * MathF.Sin(size.Y);
             var g = 255 * MathF.Cos(size.Z);
-
-            //var r = 0;
-            //var g = 0;
-            //var b = 0;
 
             var material = new DiffuseMaterial(new SolidColorBrush(Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b)));
             var geometryModel = new GeometryModel3D(mesh, material);
@@ -372,7 +569,7 @@ namespace Geometry.OctreeUI
             var tree = new Octree(bounds, _currentMinSize);
             tree.BuildTree(tree.Root);
             tree.SetObject(GeometricPrimitives.CreateBox(position, size));
-            tree.OptimizeTree();
+            tree.Optimize();
 
             _space.Octrees.Add(tree);
 
@@ -395,7 +592,7 @@ namespace Geometry.OctreeUI
             var tree = new Octree(bounds, _currentMinSize);
             tree.BuildTree(tree.Root);
             tree.SetObject(GeometricPrimitives.CreateSphere(position, radius));
-            tree.OptimizeTree();
+            tree.Optimize();
 
             _space.Octrees.Add(tree);
 
