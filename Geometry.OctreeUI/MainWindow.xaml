@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Geometry.OctreeUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="800">
+        Title="MainWindow" Height="1000" Width="800">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300"/>
@@ -28,29 +28,106 @@
                     </StackPanel>
                 </GroupBox>
 
+                <GroupBox Margin="0,0,0,10" Header="Параметры параллелепипеда">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock FontSize="14" Margin="5" Grid.Row="0">Центр:</TextBlock>
+                        <StackPanel Margin="5" Grid.Row="1">
+                            <TextBlock>X:</TextBlock>
+                            <TextBox x:Name="BoxX"/>
+                            <TextBlock>Y:</TextBlock>
+                            <TextBox x:Name="BoxY"/>
+                            <TextBlock>Z:</TextBlock>
+                            <TextBox x:Name="BoxZ"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
+                            <TextBlock>Длина:</TextBlock>
+                            <TextBox x:Name="BoxLength"/>
+                            <TextBlock>Ширина:</TextBlock>
+                            <TextBox x:Name="BoxWidth"/>
+                            <TextBlock>Высота:</TextBlock>
+                            <TextBox x:Name="BoxHeight"/>
+                            
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Margin="5">
+                            <Button x:Name="BuildBox" Click="BuildBox_Click">Построить</Button>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,0,0,10" Header="Параметры шара">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock FontSize="14" Margin="5" Grid.Row="0">Центр:</TextBlock>
+
+                        <StackPanel Grid.Row="1" Margin="5">
+                            <TextBlock>X:</TextBlock>
+                            <TextBox x:Name="SphereX"/>
+                            <TextBlock>Y:</TextBlock>
+                            <TextBox x:Name="SphereY"/>
+                            <TextBlock>Z:</TextBlock>
+                            <TextBox x:Name="SphereZ"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
+                            <TextBlock>Радиус:</TextBlock>
+                            <TextBox x:Name="SphereRadius"/>
+
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Margin="5">
+                            <Button x:Name="BuildSphere" Click="BuildSphere_Click">Построить</Button>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Объем Octree" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <TextBlock x:Name="SphereVolume" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="BoxVolume" TextWrapping="Wrap"/>
+
+                        <Button Margin="0,10,0,0" x:Name="GetVolume">Вычислить объем</Button>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Проверка точки" Margin="0,0,0,10">
+                    <StackPanel Margin="5">
+                        <TextBlock>X:</TextBlock>
+                        <TextBox x:Name="TestX"/>
+                        <TextBlock>Y:</TextBlock>
+                        <TextBox x:Name="TestY"/>
+                        <TextBlock>Z:</TextBlock>
+                        <TextBox x:Name="TestZ"/>
+
+                        <Button x:Name="GetPoint" Margin="0,10,0,0" Click="GetPoint_Click">Вычислить</Button>
+                    </StackPanel>
+                </GroupBox>
+
                 <GroupBox Header="Булевы операции" Margin="0,0,0,10">
                     <StackPanel Margin="5">
-                        <Button x:Name="UnionButton" Content="Объединение" Margin="0,2"/>
-                        <Button x:Name="SubtractButton" Content="Вычитание (Сфера - Параллелепипед)" Margin="0,2"/>
-                        <Button x:Name="IntersectButton" Content="Пересечение" Margin="0,2" Click="IntersectButton_Click"/>
+                        <Button x:Name="SubtractButton" Content="Вычитание" Margin="0,2"/>
+                        <Button x:Name="IntersectButton" Content="Пересечение" Margin="0,2"/>
                         <Button x:Name="ResetButton" Content="Сброс к исходным" Margin="0,10,0,2"/>
-                    </StackPanel>
-                </GroupBox>
-
-                <GroupBox Header="Информация" Margin="0,0,0,10">
-                    <StackPanel Margin="5">
-                        <TextBlock x:Name="VolumeInfoText" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="BooleanOpText" TextWrapping="Wrap" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </GroupBox>
-
-                <GroupBox Header="Тестовые точки" Margin="0,0,0,10">
-                    <StackPanel Margin="5">
-
                     </StackPanel>
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
+
+        <Canvas x:Name="Canvas" Grid.Column="1"/>
 
         <!-- Область визуализации -->
         <Viewport3D

@@ -49,8 +49,8 @@ namespace Geometry.Base.Octree
         {
             var bounds = GetIntersectionBounds(tree1.Bounds, tree2.Bounds);
 
-            if (bounds.Size <= 0.0001f) // Epsilon
-                return new Octree(new BoundingBox(tree1.Bounds.Center, 0), minOctantSize);
+            if (bounds.Size == Vector3.Zero)
+                return new Octree(new BoundingBox(tree1.Bounds.Center, Vector3.Zero), minOctantSize);
 
             var result = new Octree(bounds, minOctantSize);
             result.BuildTree(result.Root);
@@ -92,7 +92,7 @@ namespace Geometry.Base.Octree
             var center = (min + max) * 0.5f;
             var size = max - min;
 
-            return new BoundingBox(center, size.X);
+            return new BoundingBox(center, size);
         }
 
         private static BoundingBox GetIntersectionBounds(BoundingBox box1, BoundingBox box2)
@@ -101,12 +101,12 @@ namespace Geometry.Base.Octree
             var max = Vector3.Min(box1.Max, box2.Max);
 
             if (min.X >= max.X || min.Y >= max.Y || min.Z >= max.Z)
-                return new BoundingBox(box1.Center, 0);
+                return new BoundingBox(box1.Center, Vector3.Zero);
 
             var center = (min + max) * 0.5f;
             var size = max - min;
 
-            return new BoundingBox(center, size.X);
+            return new BoundingBox(center, size);
         }
     }
 }

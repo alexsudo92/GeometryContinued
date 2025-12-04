@@ -20,7 +20,7 @@ namespace Geometry.Base.Octree
             var size = node.Bounds.Size;
 
             // Если размер октанта меньше минимального, делаем листом
-            if (size <= _minOctantSize)
+            if (size.X / 2f <= _minOctantSize || size.Y / 2f <= _minOctantSize || size.Z / 2f <= _minOctantSize)
             {
                 node.Children = null;
                 return;
@@ -28,14 +28,17 @@ namespace Geometry.Base.Octree
 
             // Создаем 8 дочерних узлов
             node.Children = new OctreeNode[8];
-            var childrenSize = size / 4f;
+            var childrenSizeX = size.X / 4f;
+            var childrenSizeY = size.Y / 4f;
+            var childrenSizeZ = size.Z / 4f;
+
 
             for (int i = 0; i < 8; i++)
             {
                 var offset = new Vector3(
-                    (i & 1) == 0 ? -childrenSize : childrenSize,
-                    (i & 2) == 0 ? -childrenSize : childrenSize,
-                    (i & 4) == 0 ? -childrenSize : childrenSize
+                    (i & 1) == 0 ? -childrenSizeX : childrenSizeX,
+                    (i & 2) == 0 ? -childrenSizeY : childrenSizeY,
+                    (i & 4) == 0 ? -childrenSizeZ : childrenSizeZ
                 );
 
                 var childBoxSize = size / 2f;
@@ -85,7 +88,7 @@ namespace Geometry.Base.Octree
         {
             if (node.IsLeaf)
             {
-                return node.IsSolid ? node.Bounds.Size * node.Bounds.Size * node.Bounds.Size : 0;
+                return node.IsSolid ? node.Bounds.Size.X * node.Bounds.Size.Y * node.Bounds.Size.Z : 0;
             }
 
             float volume = 0;
@@ -114,6 +117,105 @@ namespace Geometry.Base.Octree
             {
                 SetObjectRecursive(child, objectFunction);
             }
+        }
+
+        public void Cleanup()
+        {
+            CleanupRecursive(Root);
+        }
+
+        public void OptimizeTree()
+        {
+            // Вызываем Cleanup несколько раз для полной оптимизации
+            // (так как объединение на одном уровне может создать условия для объединения на уровне выше)
+            bool changed;
+            do
+            {
+                changed = false;
+                var oldRoot = Root;
+                Cleanup();
+                changed = !ReferenceEquals(oldRoot, Root) || HasStructureChanged(oldRoot, Root);
+            }
+            while (changed);
+        }
+
+        private bool HasStructureChanged(OctreeNode oldNode, OctreeNode newNode)
+        {
+            if (oldNode == null && newNode == null) return false;
+            if (oldNode == null || newNode == null) return true;
+
+            if (oldNode.IsLeaf != newNode.IsLeaf) return true;
+            if (oldNode.IsSolid != newNode.IsSolid) return true;
+
+            if (!oldNode.IsLeaf)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    if (HasStructureChanged(oldNode.Children[i], newNode.Children[i]))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private OctreeNode CleanupRecursive(OctreeNode node)
+        {
+            // Если узел является листом, просто возвращаем его
+            if (node.IsLeaf)
+            {
+                return node;
+            }
+
+            // Рекурсивно обрабатываем всех детей
+            bool allChildrenNull = true;
+            bool allChildrenSolidLeaves = true;
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (node.Children[i] != null)
+                {
+                    node.Children[i] = CleanupRecursive(node.Children[i]);
+
+                    if (node.Children[i] != null)
+                    {
+                        allChildrenNull = false;
+
+                        // Проверяем, является ли ребенок сплошным листом
+                        if (!node.Children[i].IsLeaf || !node.Children[i].IsSolid)
+                        {
+                            allChildrenSolidLeaves = false;
+                        }
+                    }
+                }
+                else
+                {
+                    allChildrenSolidLeaves = false;
+                }
+            }
+
+            // Случай 1: Все дети null - делаем текущий узел null
+            if (allChildrenNull)
+            {
+                return null;
+            }
+
+            // Случай 2: Все дети являются сплошными листами - объединяем в один сплошной лист
+            if (allChildrenSolidLeaves)
+            {
+                // Создаем новый лист на основе текущего узла
+                var mergedLeaf = new OctreeNode(node.Bounds)
+                {
+                    IsSolid = true,
+                    Children = null
+                };
+
+                return mergedLeaf;
+            }
+
+            return node;
         }
     }
 }

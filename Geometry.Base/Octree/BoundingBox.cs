@@ -6,12 +6,12 @@ namespace Geometry.Base.Octree
     public struct BoundingBox
     {
         public Vector3 Center { get; set; }
-        public float Size { get; set; }
+        public Vector3 Size { get; set; }
 
-        public Vector3 Max => new(Center.X + Size / 2f, Center.Y + Size / 2f, Center.Z + Size / 2f);
-        public Vector3 Min => new(Center.X - Size / 2f, Center.Y - Size / 2f, Center.Z - Size / 2f);
+        public Vector3 Max => new(Center.X + Size.X / 2f, Center.Y + Size.Y / 2f, Center.Z + Size.Z / 2f);
+        public Vector3 Min => new(Center.X - Size.X / 2f, Center.Y - Size.Y / 2f, Center.Z - Size.Z / 2f);
 
-        public BoundingBox(Vector3 center, float size)
+        public BoundingBox(Vector3 center, Vector3 size)
         {
             Center = center;
             Size = size;

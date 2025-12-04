@@ -1,6 +1,4 @@
 ﻿using Geometry.Base.Octree;
-using System.Collections.Concurrent;
-using System.Linq;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
@@ -16,11 +14,8 @@ namespace Geometry.OctreeUI
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Octree _sphereTree;
-        private Octree _boxTree;
         private OctreeSpace _space;
         private float _currentMinSize = 1f;
-        private Model3DGroup _group;
 
         // Переменные для управления камерой
         private PerspectiveCamera _camera;
@@ -41,12 +36,14 @@ namespace Geometry.OctreeUI
 
         public MainWindow()
         {
+            _space = new OctreeSpace();
             InitializeComponent();
-            MinSizeSlider.ValueChanged += MinSizeSlider_ValueChanged;
+
             InitializeCamera();
-            InitializeOctrees();
-            RefreshVisualization();
+
+            MinSizeSlider.ValueChanged += MinSizeSlider_ValueChanged;
         }
+
         private void InitializeCamera()
         {
             _camera = new PerspectiveCamera(
@@ -59,94 +56,90 @@ namespace Geometry.OctreeUI
             MainViewport.Camera = _camera;
         }
 
-        private void InitializeOctrees()
-        {
-            //_currentMinSize = (float)MinSizeSlider.Value;
-
-            _currentMinSize = 1f;
-
-            var pos1 = new Vector3(0, 0, 0);
-            var r1 = 4f;
-            var sphereBounds = new BoundingBox(pos1, r1*2f);
-            _sphereTree = new Octree(sphereBounds, _currentMinSize);
-            _sphereTree.BuildTree(_sphereTree.Root);
-            _sphereTree.SetObject(GeometricPrimitives.CreateSphere(new Vector3(0, 0, 0), 3f));
-
-            //Создаем параллелепипед с центром(-2.5, -3.5, 3) и размерами 6x5x7
-            var boxBounds = new BoundingBox(new Vector3(0f, 10f, 0f), 4f);
-            _boxTree = new Octree(boxBounds, _currentMinSize);
-            //_boxTree.SetObject(GeometricPrimitives.CreateBox(new Vector3(0f, 10f, 0f), new Vector3(4, 4, 4)));
-
-            _space = new OctreeSpace();
-            _space.Octrees.Add(_sphereTree);
-            _space.Octrees.Add(_boxTree);
-        }
-
         private void RefreshVisualization()
         {
             MainViewport.Children.Clear();
-            //InitializeOctrees();
             VisualizeSpace(_space);
-            UpdateInfoText();
         }
 
-            if (ShowObjectsCheckBox.IsChecked == true)
+        private void VisualizeSpace(OctreeSpace space)
+        {
+            space.Octrees.ForEach((s) =>
             {
-                // Визуализируем исходные объекты
-                if (_currentBooleanTree == null)
+                VisualizeOctree(s.Root);
+            });
+        }
+
+        private void VisualizeOctree(OctreeNode root)
+        {
+            if (root.IsSolid && !root.IsRendered)
+            {
+                RenderOctant(root.Bounds.Size, root.Bounds.Center * 2f);
+                root.IsRendered = true;
+            }
+            else if (root.Children != null)
+            {
+                var count = 0;
+                foreach (var child in root.Children)
                 {
-                    VisualizeOctree(_sphereTree.Root, System.Windows.Media.Color.FromArgb((byte)(0.5 * 255), 0, 0, 0));
-                    VisualizeOctree(_boxTree.Root, System.Windows.Media.Color.FromArgb((byte)(0.5 * 255), 1, 1, 255));
+                    if (child.IsSolid)
+                    {
+                        count++;
+                    }
+                }
+
+                if (count == 8 && !root.IsRendered)
+                {
+                    RenderOctant(root.Bounds.Size, root.Bounds.Center * 2f);
+                    root.IsRendered = true;
                 }
                 else
                 {
-                }
-            }
-
-            UpdateInfoText();
-        }
-
-        private void VisualizeOctree(OctreeNode root, System.Windows.Media.Color color)
-        {
-            if (root.IsLeaf && root.IsSolid)
-            {
-                RenderOctant(root.Bounds.Center*2);
-            }
-            else if (!root.IsLeaf)
-            {
-                foreach (var child in root.Children)
-                {
-                    if (child != null)
-                        VisualizeOctree(child);
+                    foreach (var child in root.Children)
+                    {
+                        if (child != null)
+                            VisualizeOctree(child);
+                    }
                 }
             }
         }
 
-        private void RenderOctant(Vector3 center)
+        private readonly Dictionary<Vector3, Model3DGroup> _cache = [];
+        private int counter;
+        private void RenderOctant(Vector3 size, Vector3 center)
         {
+            _cache.TryGetValue(size, out Model3DGroup? cube);
+
+            if (cube == null)
+            {
+                cube = GenerateCube(size);
+                _cache.Add(size, cube);
+            }
+
             var model = new ModelVisual3D
             {
-                Content = _group,
+                Content = cube,
                 Transform = new TranslateTransform3D(center.X, center.Y, center.Z)
             };
 
+            counter++;
             MainViewport.Children.Add(model);
         }
 
-        private static Model3DGroup GenerateCube(float size)
+        private Model3DGroup GenerateCube(Vector3 size)
         {
             var mesh = new MeshGeometry3D();
 
             var points = new Point3D[]
             {
-                new (-size, -size, -size),
-                new (size, -size, -size),
-                new (size, size, -size),
-                new (-size, size, -size),
-                new (-size, -size, size),
-                new (size, -size, size),
-                new (size, size, size),
-                new (-size, size, size),
+                new (-size.X, -size.Y, -size.Z),
+                new (size.X, -size.Y, -size.Z),
+                new (size.X, size.Y, -size.Z),
+                new (-size.X, size.Y, -size.Z),
+                new (-size.X, -size.Y, size.Z),
+                new (size.X, -size.Y, size.Z),
+                new (size.X, size.Y, size.Z),
+                new (-size.X, size.Y, size.Z),
             };
 
             foreach (var point in points)
@@ -170,9 +163,20 @@ namespace Geometry.OctreeUI
                     mesh.TriangleIndices.Add(index);
                 }
             }
-            var material = new DiffuseMaterial(new SolidColorBrush(Color.FromArgb(127, 0, 0, 0)));
+
+            var a = 127;
+
+            var r = 255 * MathF.Tan(size.X);
+            var b = 255 * MathF.Sin(size.Y);
+            var g = 255 * MathF.Cos(size.Z);
+
+            //var r = 0;
+            //var g = 0;
+            //var b = 0;
+
+            var material = new DiffuseMaterial(new SolidColorBrush(Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b)));
             var geometryModel = new GeometryModel3D(mesh, material);
-            var ambientLight = new AmbientLight(Colors.DarkGray);
+            var ambientLight = new AmbientLight(Colors.White);
             var directionalLight = new DirectionalLight(Colors.White, new Vector3D(-1, -1, -1));
 
             var group = new Model3DGroup();
@@ -183,37 +187,7 @@ namespace Geometry.OctreeUI
             return group;
         }
 
-        private void UpdateInfoText()
-        {
-            var volumeList = new List<float>();
-
-            _space.Octrees.ForEach((s) =>
-            {
-                var v = s.GetVolume();
-                volumeList.Add(v);
-            });
-
-            var volumeInfo = "";
-
-            volumeList.ForEach((v) =>
-            {
-                volumeInfo += $"{v:F2}\n";
-            });
-
-            volumeInfo += $"\n{_space.GetTotalVolume():F2}\n";
-
-            VolumeInfoText.Text = volumeInfo;
-        }
-
-
-
-
-
-
-
-
-
-        // Обработчики событий мыши для управления камерой
+        #region CameraControls
         private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.RightButton == MouseButtonState.Pressed)
@@ -261,29 +235,21 @@ namespace Geometry.OctreeUI
 
         private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+
             ZoomCamera(e.Delta > 0f ? _zoomSpeed : 1.0f / _zoomSpeed);
         }
 
         private void RotateCamera(double deltaX, double deltaY)
         {
-            // Вращение с помощью правой кнопки мыши
             var lookDirection = _cameraLookDirection;
             var upDirection = _cameraUpDirection;
 
-            // Создаем кватернионы для вращения
             var rightDirection = Vector3D.CrossProduct(lookDirection, upDirection);
-            rightDirection.Normalize();
 
-            // Вращение вокруг вертикальной оси (Y)
             var rotationY = new Quaternion(upDirection, -deltaX * _rotationSpeed);
-
-            // Вращение вокруг горизонтальной оси (X)
             var rotationX = new Quaternion(rightDirection, -deltaY * _rotationSpeed);
-
-            // Комбинируем вращения
             var totalRotation = rotationX * rotationY;
 
-            // Применяем вращение к направлениям камеры
             var rotationMatrix = new Matrix3D();
             rotationMatrix.Rotate(totalRotation);
 
@@ -298,24 +264,16 @@ namespace Geometry.OctreeUI
 
         private void PanCamera(double deltaX, double deltaY)
         {
-            // Панорамирование с помощью колесика мыши
-            var lookDirection = _cameraLookDirection;
-            var upDirection = _cameraUpDirection;
+            var actualDirection = Vector3D.CrossProduct(_cameraLookDirection, _cameraUpDirection);
+            actualDirection.Normalize();
 
-            // Вычисляем правый вектор
-            var rightDirection = Vector3D.CrossProduct(lookDirection, upDirection);
-            rightDirection.Normalize();
-
-            // Вычисляем реальный вектор "вверх" (перпендикулярно взгляду и правому вектору)
-            var actualUp = Vector3D.CrossProduct(rightDirection, lookDirection);
+            var actualUp = Vector3D.CrossProduct(actualDirection, _cameraLookDirection);
             actualUp.Normalize();
 
-            // Вычисляем коэффициент панорамирования на основе расстояния камеры
             var cameraDistance = ((Vector3D)_cameraPosition).Length;
             var panFactor = _panSpeed * cameraDistance;
 
-            // Перемещаем камеру в противоположном направлении (чтобы двигать сцену)
-            _cameraPosition -= rightDirection * deltaX * panFactor;
+            _cameraPosition -= actualDirection * deltaX * panFactor;
             _cameraPosition += actualUp * deltaY * panFactor;
 
             UpdateCamera();
@@ -323,14 +281,11 @@ namespace Geometry.OctreeUI
 
         private void ZoomCamera(double factor)
         {
-            // Масштабирование с помощью колеса мыши
             var currentDistance = ((Vector3D)_cameraPosition).Length;
 
-            // Вычисляем новую позицию камеры вдоль направления взгляда
             var lookDirection = _cameraLookDirection;
             lookDirection.Normalize();
 
-            // Уменьшаем/увеличиваем расстояние камеры
             _cameraPosition += lookDirection * currentDistance * (factor - 1.0);
 
             UpdateCamera();
@@ -343,11 +298,35 @@ namespace Geometry.OctreeUI
             _camera.UpDirection = _cameraUpDirection;
         }
 
+        private void CameraReset_Click(object sender, RoutedEventArgs e)
+        {
+            _cameraPosition = new Point3D(20, 20, 20);
+            _cameraLookDirection = new Vector3D(-1, -1, -1);
+            _cameraUpDirection = new Vector3D(0, 1, 0);
 
+            UpdateCamera();
+        }
+        #endregion
 
+        private void UpdateInfoText()
+        {
+            var volumeList = new List<float>();
 
+            _space.Octrees.ForEach((s) =>
+            {
+                var v = s.GetVolume();
+                volumeList.Add(v);
+            });
 
+            var volumeInfo = "";
 
+            volumeList.ForEach((v) =>
+            {
+                volumeInfo += $"{v:F2}\n";
+            });
+
+            SphereVolume.Text = volumeInfo;
+        }
 
         private void MinSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -360,39 +339,72 @@ namespace Geometry.OctreeUI
             RefreshVisualization();
         }
 
-        //private void UnionButton_Click(object sender, RoutedEventArgs e)
-        //{
-        //    _currentBooleanTree = OctreeSpace.Union(_sphereTree, _boxTree, _currentMinSize);
-        //    RefreshVisualization();
-        //}
-
         //private void SubtractButton_Click(object sender, RoutedEventArgs e)
         //{
-        //    _currentBooleanTree = OctreeSpace.Subtract(_sphereTree, _boxTree, _currentMinSize);
+        //    var tree = OctreeSpace.Subtract(_sphereTree, _boxTree, _currentMinSize);
+        //    _space.Octrees.Clear();
+        //    _space.Octrees.Add(tree);
         //    RefreshVisualization();
         //}
 
-        private void IntersectButton_Click(object sender, RoutedEventArgs e)
+        //private void IntersectButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var tree = OctreeSpace.Intersect(_sphereTree, _boxTree, _currentMinSize);
+        //    _space.Octrees.Clear();
+        //    _space.Octrees.Add(tree);
+        //    RefreshVisualization();
+        //}
+
+        private void BuildBox_Click(object sender, RoutedEventArgs e)
         {
-            var tree = OctreeSpace.Intersect(_sphereTree, _boxTree, _currentMinSize);
-            _space.Octrees.Clear();
+            var x = Convert.ToSingle(BoxX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(BoxY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(BoxZ.Text.Replace('.', ','));
+
+            var width = Convert.ToSingle(BoxWidth.Text.Replace('.', ','));
+            var height = Convert.ToSingle(BoxHeight.Text.Replace('.', ','));
+            var length = Convert.ToSingle(BoxLength.Text.Replace('.', ','));
+
+            var position = new Vector3(x, y, z);
+            var size = new Vector3(width, height, length);
+            var bounds = new BoundingBox(position, size);
+
+            var tree = new Octree(bounds, _currentMinSize);
+            tree.BuildTree(tree.Root);
+            tree.SetObject(GeometricPrimitives.CreateBox(position, size));
+            tree.OptimizeTree();
+
             _space.Octrees.Add(tree);
+
             RefreshVisualization();
         }
 
-        //private void ResetButton_Click(object sender, RoutedEventArgs e)
-        //{
-        //    _currentBooleanTree = null;
-        //    RefreshVisualization();
-        //}
-
-        private void CameraReset_Click(object sender, RoutedEventArgs e)
+        private void BuildSphere_Click(object sender, RoutedEventArgs e)
         {
-            _cameraPosition = new Point3D(20, 20, 20);
-            _cameraLookDirection = new Vector3D(-1, -1, -1);
-            _cameraUpDirection = new Vector3D(0, 1, 0);
+            var x = Convert.ToSingle(SphereX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(SphereY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(SphereZ.Text.Replace('.', ','));
 
-            UpdateCamera();
+            var radius = Convert.ToSingle(SphereRadius.Text.Replace('.', ','));
+
+            var position = new Vector3(x, y, z);
+            var size = new Vector3(radius * 2f);
+            var bounds = new BoundingBox(position, size);
+
+            _space.Octrees.Clear();
+            var tree = new Octree(bounds, _currentMinSize);
+            tree.BuildTree(tree.Root);
+            tree.SetObject(GeometricPrimitives.CreateSphere(position, radius));
+            tree.OptimizeTree();
+
+            _space.Octrees.Add(tree);
+
+            RefreshVisualization();
+        }
+
+        private void GetPoint_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
