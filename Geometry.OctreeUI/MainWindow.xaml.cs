@@ -31,14 +31,15 @@ namespace Geometry.OctreeUI
             _currentMinSize = (float)MinSizeSlider.Value;
 
             // Создаем сферу с центром (0,0,0) и радиусом 3
-            var sphereBounds = new BoundingBox(new Vector3(0, 0, 0), 6f);
-            _sphereTree = new Octree(sphereBounds, _currentMinSize);
+            var bounds = new BoundingBox(new Vector3(0, 0, 0), 50f);
+            _sphereTree = new Octree(bounds, _currentMinSize);
             _sphereTree.BuildTree(_sphereTree.Root);
-            _sphereTree.SetObject(GeometricPrimitives.CreateSphere(new Vector3(0, 0, 0), 3f));
+            //_sphereTree.SetObject(GeometricPrimitives.CreateSphere(new Vector3(0, 0, 0), 3f));
+
+            _sphereTree.SetObject(GeometricPrimitives.CreateBox(new Vector3(0, 5, 0), new Vector3(4f, 5f, 2f)));
 
             //Создаем параллелепипед с центром(-2.5, -3.5, 3) и размерами 6x5x7
-            var boxBounds = new BoundingBox(new Vector3(0f, 10f, 0f), 4f);
-            _boxTree = new Octree(boxBounds, _currentMinSize);
+            //_boxTree = new Octree(boxBounds, _currentMinSize);
             //_boxTree.SetObject(GeometricPrimitives.CreateBox(new Vector3(0f, 10f, 0f), new Vector3(4, 4, 4)));
 
             _space = new OctreeSpace();
@@ -59,14 +60,14 @@ namespace Geometry.OctreeUI
                 if (_currentBooleanTree == null)
                 {
                     VisualizeOctree(_sphereTree.Root, System.Windows.Media.Color.FromArgb((byte)(0.5 * 255), 0, 0, 0));
-                    VisualizeOctree(_boxTree.Root, System.Windows.Media.Color.FromArgb((byte)(0.5 * 255), 1, 1, 255));
+                    //VisualizeOctree(_boxTree.Root, System.Windows.Media.Color.FromArgb((byte)(0.5 * 255), 1, 1, 255));
                 }
                 else
                 {
                 }
             }
 
-            UpdateInfoText();
+            //UpdateInfoText();
         }
 
         private void VisualizeOctree(OctreeNode root, System.Windows.Media.Color color)
