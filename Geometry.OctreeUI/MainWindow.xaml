@@ -27,7 +27,7 @@
                     </StackPanel>
                 </GroupBox>
 
-                <GroupBox Margin="0,0,0,10" Header="Параметры параллелепипеда">
+                <GroupBox Margin="0,0,0,10" Header="Параметры цилиндра">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -41,23 +41,21 @@
                         <TextBlock FontSize="14" Margin="5" Grid.Row="0">Центр:</TextBlock>
                         <StackPanel Margin="5" Grid.Row="1">
                             <TextBlock>X:</TextBlock>
-                            <TextBox x:Name="BoxX"/>
+                            <TextBox x:Name="CylinderX"/>
                             <TextBlock>Y:</TextBlock>
-                            <TextBox x:Name="BoxY"/>
+                            <TextBox x:Name="CylinderY"/>
                             <TextBlock>Z:</TextBlock>
-                            <TextBox x:Name="BoxZ"/>
+                            <TextBox x:Name="CylinderZ"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
-                            <TextBlock>Длина:</TextBlock>
-                            <TextBox x:Name="BoxLength"/>
-                            <TextBlock>Ширина:</TextBlock>
-                            <TextBox x:Name="BoxWidth"/>
+                            <TextBlock>Радиус основания:</TextBlock>
+                            <TextBox x:Name="CylinderRadius"/>
                             <TextBlock>Высота:</TextBlock>
-                            <TextBox x:Name="BoxHeight"/>
+                            <TextBox x:Name="CylinderHeight"/>
 
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
-                            <Button x:Name="BuildBox" Click="BuildBox_Click">Построить</Button>
+                            <Button x:Name="BuildCylinder" Click="BuildCylinder_Click">Построить</Button>
                         </StackPanel>
                     </Grid>
                 </GroupBox>

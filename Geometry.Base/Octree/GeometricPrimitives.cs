@@ -13,15 +13,25 @@ namespace Geometry.Base.Octree
             };
         }
 
-        public static Func<Vector3, bool> CreateBox(Vector3 center, Vector3 size)
+        public static Func<Vector3, bool> CreateCylinder(Vector3 center, Vector3 axis, float radius, float height)
         {
             return point =>
             {
-                var min = center - size * 0.5f;
-                var max = center + size * 0.5f;
-                return point.X >= min.X && point.X <= max.X &&
-                       point.Y >= min.Y && point.Y <= max.Y &&
-                       point.Z >= min.Z && point.Z <= max.Z;
+                // Вектор от точки к центру основания
+                var toPoint = point - center;
+
+                // Проекция на ось
+                var projection = Vector3.Dot(toPoint, axis);
+
+                // Проверка высоты
+                if (projection < 0 || projection > height)
+                    return false;
+
+                // Перпендикулярная составляющая
+                var perpendicular = toPoint - projection * axis;
+
+                // Проверка радиуса
+                return perpendicular.LengthSquared() <= radius * radius;
             };
         }
     }

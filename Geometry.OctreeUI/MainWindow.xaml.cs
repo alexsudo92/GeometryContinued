@@ -80,7 +80,7 @@ namespace Geometry.OctreeUI
                 {
                     if (kvp.Value.Count > 0)
                     {
-                        RenderLayerMeshOptimized(kvp.Key, kvp.Value);
+                        RenderLayerMesh(kvp.Key, kvp.Value);
                     }
                 }
             }
@@ -143,7 +143,7 @@ namespace Geometry.OctreeUI
             return allChildrenSolid && !anyChildRendered;
         }
 
-        private void RenderLayerMeshOptimized(Vector3 size, List<Vector3> centers)
+        private void RenderLayerMesh(Vector3 size, List<Vector3> centers)
         {
             if (centers.Count == 0)
                 return;
@@ -362,23 +362,22 @@ namespace Geometry.OctreeUI
             _currentMinSize = (float)e.NewValue;
         }
 
-        private void BuildBox_Click(object sender, RoutedEventArgs e)
+        private void BuildCylinder_Click(object sender, RoutedEventArgs e)
         {
-            var x = Convert.ToSingle(BoxX.Text.Replace('.', ','));
-            var y = Convert.ToSingle(BoxY.Text.Replace('.', ','));
-            var z = Convert.ToSingle(BoxZ.Text.Replace('.', ','));
+            var x = Convert.ToSingle(CylinderX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(CylinderY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(CylinderZ.Text.Replace('.', ','));
 
-            var width = Convert.ToSingle(BoxWidth.Text.Replace('.', ','));
-            var height = Convert.ToSingle(BoxHeight.Text.Replace('.', ','));
-            var length = Convert.ToSingle(BoxLength.Text.Replace('.', ','));
+            var radius = Convert.ToSingle(CylinderRadius.Text.Replace('.', ','));
+            var height = Convert.ToSingle(CylinderHeight.Text.Replace('.', ','));
 
             var position = new Vector3(x, y, z);
-            var size = new Vector3(width, height, length);
+            var size = new Vector3(radius * 2f, height, radius * 2f);
             var bounds = new BoundingBox(position, size);
 
             var tree = new Octree(bounds, _currentMinSize);
-            var box = GeometricPrimitives.CreateBox(position, size);
-            tree.SetObject(box);
+            var cylinder = GeometricPrimitives.CreateCylinder(position, Vector3.UnitY, radius, height);
+            tree.SetObject(cylinder);
 
             _space.Octrees.Add(tree);
 
