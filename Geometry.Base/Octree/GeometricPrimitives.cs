@@ -2,10 +2,8 @@
 
 namespace Geometry.Base.Octree
 {
-    // Геометрические примитивы
     public static class GeometricPrimitives
     {
-        // Сфера с центром и радиусом
         public static Func<Vector3, bool> CreateSphere(Vector3 center, float radius)
         {
             return point =>
@@ -15,7 +13,6 @@ namespace Geometry.Base.Octree
             };
         }
 
-        // Параллелепипед (прямоугольный бокс) с центром и размерами
         public static Func<Vector3, bool> CreateBox(Vector3 center, Vector3 size)
         {
             return point =>

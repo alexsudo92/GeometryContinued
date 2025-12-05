@@ -2,7 +2,6 @@
 
 namespace Geometry.Base.Octree
 {
-    // Пространство для размещения нескольких Octree
     public class OctreeSpace
     {
         public readonly List<Octree> Octrees;
@@ -22,13 +21,11 @@ namespace Geometry.Base.Octree
             return volume;
         }
 
-        // Булевы операции между двумя Octree
         public static Octree Union(Octree tree1, Octree tree2, float minOctantSize)
         {
             var bounds = GetCombinedBounds(tree1.Bounds, tree2.Bounds);
             var result = new Octree(bounds, minOctantSize);
 
-            // Сэмплируем пространство для определения объединения
             SampleSpaceForBooleanOp(result, tree1, tree2, (p1, p2) => p1 || p2);
 
             return result;
@@ -39,7 +36,6 @@ namespace Geometry.Base.Octree
             var bounds = tree1.Bounds;
             var result = new Octree(bounds, minOctantSize);
 
-            // Сэмплируем пространство для определения разности
             SampleSpaceForBooleanOp(result, tree1, tree2, (p1, p2) => p1 && !p2);
 
             return result;
@@ -53,9 +49,8 @@ namespace Geometry.Base.Octree
                 return new Octree(new BoundingBox(tree1.Bounds.Center, Vector3.Zero), minOctantSize);
 
             var result = new Octree(bounds, minOctantSize);
-            result.BuildTree(result.Root);
+            //result.BuildTree(result.Root);
 
-            // Сэмплируем пространство для определения пересечения
             SampleSpaceForBooleanOp(result, tree1, tree2, (p1, p2) => p1 && p2);
 
             return result;
@@ -63,7 +58,6 @@ namespace Geometry.Base.Octree
 
         private static void SampleSpaceForBooleanOp(Octree result, Octree tree1, Octree tree2, Func<bool, bool, bool> operation)
         {
-            // Рекурсивно обходим результат и определяем принадлежность на основе операции
             SampleNode(result.Root, tree1, tree2, operation);
         }
 

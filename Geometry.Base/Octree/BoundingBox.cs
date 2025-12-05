@@ -2,7 +2,6 @@
 
 namespace Geometry.Base.Octree
 {
-    // Ограничивающая рамка
     public struct BoundingBox
     {
         public Vector3 Center { get; set; }

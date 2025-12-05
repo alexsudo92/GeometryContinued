@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Geometry.OctreeUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1000" Width="800">
+        Title="MainWindow" Height="1000" Width="1200">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300"/>
@@ -22,8 +22,7 @@
                                TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,5"/>
                         <TextBlock x:Name="MinSizeText" Text="1" HorizontalAlignment="Center"/>
 
-                        <Button x:Name="RefreshButton" Content="Обновить визуализацию" 
-                               Click="RefreshButton_Click" Margin="0,10"/>
+                        <Button x:Name="ClearVisualization" Content="Очистить визуализацию" Margin="0,10" Click="ClearVisualization_Click"/>
                         <Button x:Name="CameraReset" Click="CameraReset_Click">Сбросить камеру</Button>
                     </StackPanel>
                 </GroupBox>
@@ -55,7 +54,7 @@
                             <TextBox x:Name="BoxWidth"/>
                             <TextBlock>Высота:</TextBlock>
                             <TextBox x:Name="BoxHeight"/>
-                            
+
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
                             <Button x:Name="BuildBox" Click="BuildBox_Click">Построить</Button>
@@ -100,7 +99,7 @@
                         <TextBlock x:Name="SphereVolume" TextWrapping="Wrap"/>
                         <TextBlock x:Name="BoxVolume" TextWrapping="Wrap"/>
 
-                        <Button Margin="0,10,0,0" x:Name="GetVolume">Вычислить объем</Button>
+                        <Button Margin="0,10,0,0" x:Name="GetVolume" Click="GetVolume_Click">Вычислить объем</Button>
                     </StackPanel>
                 </GroupBox>
 
@@ -126,10 +125,7 @@
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
-
-        <Canvas x:Name="Canvas" Grid.Column="1"/>
-
-        <!-- Область визуализации -->
+        
         <Viewport3D
             MouseDown="Viewport_MouseDown"
             MouseUp="Viewport_MouseUp" 
