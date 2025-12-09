@@ -37,7 +37,7 @@ namespace Geometry.Base.Octree
             return resultTree;
         }
 
-        public static Octree Difference(Octree tree1, Octree tree2, float minOctantSize)
+        public static Octree Subtract(Octree tree1, Octree tree2, float minOctantSize)
         {
             var resultTree = new Octree(tree1.Bounds, minOctantSize);
 

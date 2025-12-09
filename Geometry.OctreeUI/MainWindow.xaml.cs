@@ -117,9 +117,9 @@ namespace Geometry.OctreeUI
 
             var rnd = new Random();
             var a = 127;
-            var r = 255 * rnd.NextSingle();
-            var g = 255 * rnd.NextSingle();
-            var b = 255 * rnd.NextSingle();
+            var r = 255 * MathF.Sin(size.X);
+            var g = 255 * MathF.Atan(size.Z);
+            var b = 255 * MathF.Sqrt(size.Y);
             var color = Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b);
 
             var material = new DiffuseMaterial(new SolidColorBrush(color));
@@ -356,10 +356,10 @@ namespace Geometry.OctreeUI
             var tree = new Octree(bounds, _currentMinSize);
             var cylinder = GeometricPrimitives.CreateCylinder(position, Vector3.UnitY, radius, height);
             tree.SetObject(cylinder);
-            AddModel(new OctreeModel { Name = $"Цилиндр\nR={radius}\nH={height}", Position = position, Volume = tree.GetVolume() });
-
 
             _space.Octrees.Add(tree);
+            AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Цилиндр\nR={radius}\nH={height}", Position = position, Volume = tree.GetVolume() });
+
             RefreshVisualization();
         }
 
@@ -380,7 +380,7 @@ namespace Geometry.OctreeUI
             tree.SetObject(sphere);
 
             _space.Octrees.Add(tree);
-            AddModel(new OctreeModel { Name = $"Сфера\nR={radius}", Position = position, Volume = tree.GetVolume() });
+            AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Сфера\nR={radius}", Position = position, Volume = tree.GetVolume() });
 
             RefreshVisualization();
         }
@@ -396,19 +396,26 @@ namespace Geometry.OctreeUI
             var y = Convert.ToSingle(string.IsNullOrEmpty(TestY.Text) ? 0f : TestY.Text.Replace('.', ','));
             var z = Convert.ToSingle(string.IsNullOrEmpty(TestZ.Text) ? 0f : TestZ.Text.Replace('.', ','));
 
+            var testObject = TestPointObject.SelectedIndex;
 
-            if (ModelsList.SelectedItem is not OctreeModel selected)
+            var tree = _space.Octrees[testObject];
+
+            if (tree is null)
             {
-                MessageBox.Show("Модель не выбрана");
+                MessageBox.Show("Объект не выбран");
                 return;
             }
 
-            var index = OctreeModels.IndexOf(selected);
+            var inside = tree.ContainsPoint(new Vector3(x, y, z));
 
-            var tree = _space.Octrees[index];
-            var v = tree.ContainsPoint(new Vector3(x, y, z));
-
-            MessageBox.Show($"Contains: {v}");
+            if (inside)
+            {
+                MessageBox.Show("Точка внутри объекта");
+            }
+            else
+            {
+                MessageBox.Show("Точка снаружи объекта");
+            }
         }
 
         private void ClearVisualization_Click(object sender, RoutedEventArgs e)
@@ -416,6 +423,145 @@ namespace Geometry.OctreeUI
             _space.Octrees.Clear();
             OctreeModels.Clear();
             MainViewport.Children.Clear();
+        }
+
+        private void SubtractButton_Click(object sender, RoutedEventArgs e)
+        {
+            var first = FirstObject.SelectedIndex;
+            var second = SecondObject.SelectedIndex;
+
+            if (first == second)
+            {
+                MessageBox.Show("Выберите разные объекты для пересечения");
+                return;
+            }
+
+            var tree1 = _space.Octrees[first];
+            var tree2 = _space.Octrees[second];
+
+            var model1 = OctreeModels[first];
+            var model2 = OctreeModels[second];
+
+            if (tree1 is not null && tree2 is not null)
+            {
+                var tree = OctreeSpace.Subtract(tree1, tree2, _currentMinSize);
+
+                _space.Octrees.Remove(tree1);
+                _space.Octrees.Remove(tree2);
+                OctreeModels.Remove(model1);
+                OctreeModels.Remove(model2);
+
+                _space.Octrees.Add(tree);
+                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Вычитание", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                RefreshVisualization();
+            }
+            else
+            {
+                MessageBox.Show("Один из выбранных объектов не существует");
+                return;
+            }
+        }
+
+        private void IntersectButton_Click(object sender, RoutedEventArgs e)
+        {
+            var first = FirstObject.SelectedIndex;
+            var second = SecondObject.SelectedIndex;
+
+            if (first == second)
+            {
+                MessageBox.Show("Выберите разные объекты для пересечения");
+                return;
+            }
+
+            var tree1 = _space.Octrees[first];
+            var tree2 = _space.Octrees[second];
+
+            var model1 = OctreeModels[first];
+            var model2 = OctreeModels[second];
+
+            if (tree1 is not null && tree2 is not null)
+            {
+                var tree = OctreeSpace.Intersection(tree1, tree2, _currentMinSize);
+
+                _space.Octrees.Remove(tree1);
+                _space.Octrees.Remove(tree2);
+                OctreeModels.Remove(model1);
+                OctreeModels.Remove(model2);
+
+                _space.Octrees.Add(tree);
+                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Пересечение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                RefreshVisualization();
+
+            }
+            else
+            {
+                MessageBox.Show("Один из выбранных объектов не существует");
+                return;
+            }
+        }
+
+        private void UnionButton_Click(object sender, RoutedEventArgs e)
+        {
+            var first = FirstObject.SelectedIndex;
+            var second = SecondObject.SelectedIndex;
+
+            if (first == second)
+            {
+                MessageBox.Show("Выберите разные объекты для пересечения");
+                return;
+            }
+
+            var tree1 = _space.Octrees[first];
+            var tree2 = _space.Octrees[second];
+
+            var model1 = OctreeModels[first];
+            var model2 = OctreeModels[second];
+
+            if (tree1 is not null && tree2 is not null)
+            {
+                var tree = OctreeSpace.Union(tree1, tree2, _currentMinSize);
+
+                _space.Octrees.Remove(tree1);
+                _space.Octrees.Remove(tree2);
+                OctreeModels.Remove(model1);
+                OctreeModels.Remove(model2);
+
+                _space.Octrees.Add(tree);
+                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Объединение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                RefreshVisualization();
+
+            }
+            else
+            {
+                MessageBox.Show("Один из выбранных объектов не существует");
+                return;
+            }
+        }
+
+        private void RemoveObject_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = ModelsList.SelectedIndex;
+
+            if (selected == -1)
+            {
+                MessageBox.Show("Выберите объект для удаления");
+                return;
+            }
+
+            var tree = _space.Octrees[selected];
+            var model = OctreeModels[selected];
+
+            if (model is not null && tree is not null)
+            {
+                _space.Octrees.Remove(tree);
+                OctreeModels.Remove(model);
+                RefreshVisualization();
+            }
+            else
+            {
+                MessageBox.Show("Объект не существует");
+                return;
+            }
         }
     }
 }
