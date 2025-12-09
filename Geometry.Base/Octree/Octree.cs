@@ -12,7 +12,7 @@ namespace Geometry.Base.Octree
             Root = BuildTree(Root, objectFunction);
         }
 
-        public OctreeNode BuildTree(OctreeNode node, Func<Vector3, bool> objectFunction)
+        private OctreeNode BuildTree(OctreeNode node, Func<Vector3, bool> objectFunction)
         {
             var size = node.Bounds.Size;
 
@@ -50,9 +50,7 @@ namespace Geometry.Base.Octree
             }
 
             var allChildrenAreLeaves = true;
-            var firstChildSolidState = false;
-            var allChildrenSame = true;
-
+            var allChildrenSolid = true;
             foreach (var child in node.Children)
             {
                 if (!child.IsLeaf)
@@ -60,28 +58,21 @@ namespace Geometry.Base.Octree
                     allChildrenAreLeaves = false;
                     break;
                 }
-
-                if (!firstChildSolidState)
+                if (!child.IsSolid)
                 {
-                    firstChildSolidState = child.IsSolid;
-                }
-                else if (child.IsSolid != firstChildSolidState)
-                {
-                    allChildrenSame = false;
-                    break;
+                    allChildrenSolid = false;
                 }
             }
 
-            if (allChildrenAreLeaves && allChildrenSame && firstChildSolidState)
+            if (allChildrenAreLeaves && allChildrenSolid)
             {
                 node.Children = null;
-                node.IsSolid = firstChildSolidState;
+                node.IsSolid = true;
             }
             else
             {
                 node.IsSolid = false;
             }
-
             return node;
         }
 

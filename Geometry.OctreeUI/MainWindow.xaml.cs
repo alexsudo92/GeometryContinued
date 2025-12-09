@@ -1,4 +1,5 @@
 ﻿using Geometry.Base.Octree;
+using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
@@ -9,9 +10,6 @@ using Quaternion = System.Windows.Media.Media3D.Quaternion;
 
 namespace Geometry.OctreeUI
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private readonly OctreeSpace _space;
@@ -31,12 +29,15 @@ namespace Geometry.OctreeUI
         // Параметры чувствительности
         private readonly float _rotationSpeed = 0.1f;
         private readonly float _panSpeed = 0.001f;
-        private readonly float _zoomSpeed = 1.2f;
+        private readonly float _zoomSpeed = 1.1f;
+
+        public ObservableCollection<OctreeModel> OctreeModels { get; set; } = [];
 
         public MainWindow()
         {
             _space = new OctreeSpace();
             InitializeComponent();
+            this.DataContext = this;
 
             InitializeCamera();
 
@@ -61,95 +62,34 @@ namespace Geometry.OctreeUI
 
         private void RefreshVisualization()
         {
-            var maxDepth = 10;
-            VisualizeSpaceLayered(_space, maxDepth);
-        }
+            MainViewport.Children.Clear();
 
-        private void VisualizeSpaceLayered(OctreeSpace space, int maxDepth)
-        {
+            var maxDepth = 10;
+
             for (var depth = 0; depth <= maxDepth; depth++)
             {
                 var sizeGroups = new Dictionary<Vector3, List<Vector3>>();
 
-                space.Octrees.ForEach(s =>
+                foreach (var space in _space.Octrees)
                 {
-                    CollectNodesByDepth(s.Root, depth, 0, sizeGroups);
-                });
+                    CollectNodesByDepth(space.Root, depth, 0, sizeGroups);
+                }
 
                 foreach (var kvp in sizeGroups)
                 {
                     if (kvp.Value.Count > 0)
                     {
-                        RenderLayerMesh(kvp.Key, kvp.Value);
+                        RenderLayerMeshOptimized(kvp.Key, kvp.Value, depth);
                     }
                 }
             }
         }
 
-        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth, Dictionary<Vector3, List<Vector3>> sizeGroups)
+        private void RenderLayerMeshOptimized(Vector3 size, List<Vector3> centers, int depth)
         {
-            if (currentDepth == targetDepth)
-            {
-                if (node.IsSolid && !node.IsRendered)
-                {
-                    if (ShouldRenderNode(node))
-                    {
-                        var size = node.Bounds.Size;
-                        var center = node.Bounds.Center;
-
-                        if (!sizeGroups.TryGetValue(size, out List<Vector3>? value))
-                        {
-                            value = [];
-                            sizeGroups[size] = value;
-                        }
-
-                        value.Add(center * 2f);
-                        node.IsRendered = true;
-                    }
-                }
-            }
-            else if (currentDepth < targetDepth && node.Children != null)
-            {
-                foreach (var child in node.Children)
-                {
-                    if (child != null)
-                    {
-                        CollectNodesByDepth(child, targetDepth, currentDepth + 1, sizeGroups);
-                    }
-                }
-            }
-        }
-
-        private bool ShouldRenderNode(OctreeNode node)
-        {
-            if (node.Children == null)
-                return node.IsSolid;
-
-            var allChildrenSolid = true;
-            var anyChildRendered = false;
-
-            foreach (var child in node.Children)
-            {
-                if (child == null || !child.IsSolid)
-                {
-                    allChildrenSolid = false;
-                }
-                if (child != null && child.IsRendered)
-                {
-                    anyChildRendered = true;
-                }
-            }
-
-            return allChildrenSolid && !anyChildRendered;
-        }
-
-        private void RenderLayerMesh(Vector3 size, List<Vector3> centers)
-        {
-            if (centers.Count == 0)
-                return;
+            if (centers.Count == 0) return;
 
             var mesh = new MeshGeometry3D();
-
             if (!_cache.TryGetValue(size, out var cube))
             {
                 cube = GenerateCube(size);
@@ -173,13 +113,13 @@ namespace Geometry.OctreeUI
                 {
                     mesh.TriangleIndices.Add(baseIndex + index);
                 }
-
             }
 
+            var rnd = new Random();
             var a = 127;
-            var r = 255 * MathF.Tan(size.X);
-            var b = 255 * MathF.Sin(size.Y);
-            var g = 255 * MathF.Cos(size.Z);
+            var r = 255 * rnd.NextSingle();
+            var g = 255 * rnd.NextSingle();
+            var b = 255 * rnd.NextSingle();
             var color = Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b);
 
             var material = new DiffuseMaterial(new SolidColorBrush(color));
@@ -192,6 +132,44 @@ namespace Geometry.OctreeUI
 
             var visual = new ModelVisual3D { Content = group };
             MainViewport.Children.Add(visual);
+        }
+
+        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth, Dictionary<Vector3, List<Vector3>> sizeGroups)
+        {
+            if (currentDepth == targetDepth)
+            {
+
+                if (ShouldRenderNode(node))
+                {
+                    var size = node.Bounds.Size;
+                    var center = node.Bounds.Center;
+
+                    if (!sizeGroups.TryGetValue(size, out List<Vector3>? value))
+                    {
+                        value = [];
+                        sizeGroups[size] = value;
+                    }
+
+                    value.Add(center * 2f);
+                    node.IsRendered = true;
+                }
+
+            }
+            else if (currentDepth < targetDepth && node.Children != null)
+            {
+                foreach (var child in node.Children)
+                {
+                    if (child != null)
+                    {
+                        CollectNodesByDepth(child, targetDepth, currentDepth + 1, sizeGroups);
+                    }
+                }
+            }
+        }
+
+        private bool ShouldRenderNode(OctreeNode node)
+        {
+            return node.IsLeaf && node.IsSolid;
         }
 
         private MeshGeometry3D GenerateCube(Vector3 size)
@@ -364,33 +342,34 @@ namespace Geometry.OctreeUI
 
         private void BuildCylinder_Click(object sender, RoutedEventArgs e)
         {
-            var x = Convert.ToSingle(CylinderX.Text.Replace('.', ','));
-            var y = Convert.ToSingle(CylinderY.Text.Replace('.', ','));
-            var z = Convert.ToSingle(CylinderZ.Text.Replace('.', ','));
+            var x = Convert.ToSingle(string.IsNullOrEmpty(CylinderX.Text) ? 0f : CylinderX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(string.IsNullOrEmpty(CylinderY.Text) ? 0f : CylinderY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(string.IsNullOrEmpty(CylinderZ.Text) ? 0f : CylinderZ.Text.Replace('.', ','));
 
-            var radius = Convert.ToSingle(CylinderRadius.Text.Replace('.', ','));
-            var height = Convert.ToSingle(CylinderHeight.Text.Replace('.', ','));
+            var radius = Convert.ToSingle(string.IsNullOrEmpty(CylinderRadius.Text) ? 0f : CylinderRadius.Text.Replace('.', ','));
+            var height = Convert.ToSingle(string.IsNullOrEmpty(CylinderHeight.Text) ? 0f : CylinderHeight.Text.Replace('.', ','));
 
             var position = new Vector3(x, y, z);
-            var size = new Vector3(radius * 2f, height, radius * 2f);
+            var size = new Vector3(radius * 2f, height * 2f, radius * 2f);
             var bounds = new BoundingBox(position, size);
 
             var tree = new Octree(bounds, _currentMinSize);
             var cylinder = GeometricPrimitives.CreateCylinder(position, Vector3.UnitY, radius, height);
             tree.SetObject(cylinder);
+            AddModel(new OctreeModel { Name = $"Цилиндр\nR={radius}\nH={height}", Position = position, Volume = tree.GetVolume() });
+
 
             _space.Octrees.Add(tree);
-
             RefreshVisualization();
         }
 
         private void BuildSphere_Click(object sender, RoutedEventArgs e)
         {
-            var x = Convert.ToSingle(SphereX.Text.Replace('.', ','));
-            var y = Convert.ToSingle(SphereY.Text.Replace('.', ','));
-            var z = Convert.ToSingle(SphereZ.Text.Replace('.', ','));
+            var x = Convert.ToSingle(string.IsNullOrEmpty(SphereX.Text) ? 0f : SphereX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(string.IsNullOrEmpty(SphereY.Text) ? 0f : SphereY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(string.IsNullOrEmpty(SphereZ.Text) ? 0f : SphereZ.Text.Replace('.', ','));
 
-            var radius = Convert.ToSingle(SphereRadius.Text.Replace('.', ','));
+            var radius = Convert.ToSingle(string.IsNullOrEmpty(SphereRadius.Text) ? 0f : SphereRadius.Text.Replace('.', ','));
 
             var position = new Vector3(x, y, z);
             var size = new Vector3(radius * 2f);
@@ -401,35 +380,41 @@ namespace Geometry.OctreeUI
             tree.SetObject(sphere);
 
             _space.Octrees.Add(tree);
+            AddModel(new OctreeModel { Name = $"Сфера\nR={radius}", Position = position, Volume = tree.GetVolume() });
 
             RefreshVisualization();
         }
 
-        private void GetPoint_Click(object sender, RoutedEventArgs e)
+        private void AddModel(OctreeModel octreeModel)
         {
-            var x = Convert.ToSingle(TestX.Text.Replace('.', ','));
-            var y = Convert.ToSingle(TestY.Text.Replace('.', ','));
-            var z = Convert.ToSingle(TestZ.Text.Replace('.', ','));
-
-            _space.Octrees.ForEach((s) =>
-            {
-                var v = s.ContainsPoint(new Vector3(x, y, z));
-                MessageBox.Show($"Contains: {v}");
-            });
+            OctreeModels.Add(octreeModel);
         }
 
-        private void GetVolume_Click(object sender, RoutedEventArgs e)
+        private void GetPoint_Click(object sender, RoutedEventArgs e)
         {
-            _space.Octrees.ForEach((s) =>
+            var x = Convert.ToSingle(string.IsNullOrEmpty(TestX.Text) ? 0f : TestX.Text.Replace('.', ','));
+            var y = Convert.ToSingle(string.IsNullOrEmpty(TestY.Text) ? 0f : TestY.Text.Replace('.', ','));
+            var z = Convert.ToSingle(string.IsNullOrEmpty(TestZ.Text) ? 0f : TestZ.Text.Replace('.', ','));
+
+
+            if (ModelsList.SelectedItem is not OctreeModel selected)
             {
-                var v = s.GetVolume();
-                MessageBox.Show($"Volume: {v:F2}");
-            });
+                MessageBox.Show("Модель не выбрана");
+                return;
+            }
+
+            var index = OctreeModels.IndexOf(selected);
+
+            var tree = _space.Octrees[index];
+            var v = tree.ContainsPoint(new Vector3(x, y, z));
+
+            MessageBox.Show($"Contains: {v}");
         }
 
         private void ClearVisualization_Click(object sender, RoutedEventArgs e)
         {
             _space.Octrees.Clear();
+            OctreeModels.Clear();
             MainViewport.Children.Clear();
         }
     }

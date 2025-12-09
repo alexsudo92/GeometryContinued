@@ -5,19 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Geometry.OctreeUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1000" Width="1200">
+        Title="MainWindow" Height="800" Width="1000">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="200"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="300"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Панель управления -->
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="10">
-                <GroupBox Header="Управление" Margin="0,0,0,10">
+                <Expander IsExpanded="True" Header="Управление" Margin="0,0,0,10">
                     <StackPanel Margin="5">
-                        <TextBlock Text="Минимальный размер октанта:" Margin="0,5"/>
+                        <TextBlock Text="Минимальный размер куба:" Margin="0,5"/>
                         <Slider x:Name="MinSizeSlider" Minimum="0.1" Maximum="2.0" Value="1" 
                                TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,5"/>
                         <TextBlock x:Name="MinSizeText" Text="1" HorizontalAlignment="Center"/>
@@ -25,9 +25,9 @@
                         <Button x:Name="ClearVisualization" Content="Очистить визуализацию" Margin="0,10" Click="ClearVisualization_Click"/>
                         <Button x:Name="CameraReset" Click="CameraReset_Click">Сбросить камеру</Button>
                     </StackPanel>
-                </GroupBox>
+                </Expander>
 
-                <GroupBox Margin="0,0,0,10" Header="Параметры цилиндра">
+                <Expander IsExpanded="True" Margin="0,0,0,10" Header="Параметры цилиндра">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -48,19 +48,19 @@
                             <TextBox x:Name="CylinderZ"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
-                            <TextBlock>Радиус основания:</TextBlock>
+                            <TextBlock>Радиус:</TextBlock>
                             <TextBox x:Name="CylinderRadius"/>
                             <TextBlock>Высота:</TextBlock>
                             <TextBox x:Name="CylinderHeight"/>
 
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
-                            <Button x:Name="BuildCylinder" Click="BuildCylinder_Click">Построить</Button>
+                            <Button x:Name="BuildCylinder" Click="BuildCylinder_Click">Добавить</Button>
                         </StackPanel>
                     </Grid>
-                </GroupBox>
+                </Expander>
 
-                <GroupBox Margin="0,0,0,10" Header="Параметры шара">
+                <Expander IsExpanded="True" Margin="0,0,0,10" Header="Параметры шара">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -87,21 +87,39 @@
 
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
-                            <Button x:Name="BuildSphere" Click="BuildSphere_Click">Построить</Button>
+                            <Button x:Name="BuildSphere" Click="BuildSphere_Click">Добавить</Button>
                         </StackPanel>
                     </Grid>
-                </GroupBox>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
 
-                <GroupBox Header="Объем Octree" Margin="0,0,0,10">
-                    <StackPanel Margin="5">
-                        <TextBlock x:Name="SphereVolume" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="BoxVolume" TextWrapping="Wrap"/>
+        <Viewport3D
+            MouseDown="Viewport_MouseDown"
+            MouseUp="Viewport_MouseUp" 
+            MouseMove="Viewport_MouseMove"
+            MouseWheel="Viewport_MouseWheel"
+            Grid.Column="1"
+            x:Name="MainViewport"/>
 
-                        <Button Margin="0,10,0,0" x:Name="GetVolume" Click="GetVolume_Click">Вычислить объем</Button>
-                    </StackPanel>
-                </GroupBox>
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            
+            
+            <StackPanel Margin="10">
+                <ListView ItemsSource="{Binding OctreeModels}" x:Name="ModelsList" Margin="0,10,0,0">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn DisplayMemberBinding="{Binding Path=Name}" Header="Объект" Width="100">
+                            </GridViewColumn>
+                            <GridViewColumn DisplayMemberBinding="{Binding Path=Position}" Header="Координаты">
+                            </GridViewColumn>
+                            <GridViewColumn DisplayMemberBinding="{Binding Path=Volume}" Header="Объем" Width="80">
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
 
-                <GroupBox Header="Проверка точки" Margin="0,0,0,10">
+                <Expander Header="Проверка точки" Margin="0,10,0,10">
                     <StackPanel Margin="5">
                         <TextBlock>X:</TextBlock>
                         <TextBox x:Name="TestX"/>
@@ -112,36 +130,16 @@
 
                         <Button x:Name="GetPoint" Margin="0,10,0,0" Click="GetPoint_Click">Вычислить</Button>
                     </StackPanel>
-                </GroupBox>
+                </Expander>
 
-                <GroupBox Header="Булевы операции" Margin="0,0,0,10">
+                <Expander Header="Булевы операции" Margin="0,0,0,10">
                     <StackPanel Margin="5">
                         <Button x:Name="SubtractButton" Content="Вычитание" Margin="0,2"/>
                         <Button x:Name="IntersectButton" Content="Пересечение" Margin="0,2"/>
                         <Button x:Name="ResetButton" Content="Сброс к исходным" Margin="0,10,0,2"/>
                     </StackPanel>
-                </GroupBox>
+                </Expander>
             </StackPanel>
         </ScrollViewer>
-        
-        <Viewport3D
-            MouseDown="Viewport_MouseDown"
-            MouseUp="Viewport_MouseUp" 
-            MouseMove="Viewport_MouseMove"
-            MouseWheel="Viewport_MouseWheel"
-            Grid.Column="1"
-            x:Name="MainViewport">
-
-            <ModelVisual3D>
-                <ModelVisual3D.Content>
-                    <AmbientLight Color="White"/>
-                </ModelVisual3D.Content>
-            </ModelVisual3D>
-            <ModelVisual3D>
-                <ModelVisual3D.Content>
-                    <DirectionalLight Color="White" Direction="1,-1,-1"/>
-                </ModelVisual3D.Content>
-            </ModelVisual3D>
-        </Viewport3D>
     </Grid>
 </Window>

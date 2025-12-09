@@ -17,20 +17,14 @@ namespace Geometry.Base.Octree
         {
             return point =>
             {
-                // Вектор от точки к центру основания
                 var toPoint = point - center;
-
-                // Проекция на ось
                 var projection = Vector3.Dot(toPoint, axis);
 
-                // Проверка высоты
                 if (projection < 0 || projection > height)
                     return false;
 
-                // Перпендикулярная составляющая
                 var perpendicular = toPoint - projection * axis;
 
-                // Проверка радиуса
                 return perpendicular.LengthSquared() <= radius * radius;
             };
         }
