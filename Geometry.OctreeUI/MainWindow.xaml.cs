@@ -14,7 +14,7 @@ namespace Geometry.OctreeUI
     {
         private readonly OctreeSpace _space;
         private float _currentMinSize = 1f;
-        private readonly Dictionary<Vector3, MeshGeometry3D> _cache = [];
+        private readonly Dictionary<float, MeshGeometry3D> _cache = [];
 
         // Переменные для управления камерой
         private PerspectiveCamera _camera;
@@ -68,7 +68,7 @@ namespace Geometry.OctreeUI
 
             for (var depth = 0; depth <= maxDepth; depth++)
             {
-                var sizeGroups = new Dictionary<Vector3, List<Vector3>>();
+                var sizeGroups = new Dictionary<float, List<Vector3>>();
 
                 foreach (var space in _space.Octrees)
                 {
@@ -79,13 +79,13 @@ namespace Geometry.OctreeUI
                 {
                     if (kvp.Value.Count > 0)
                     {
-                        RenderLayerMeshOptimized(kvp.Key, kvp.Value, depth);
+                        RenderLayerMeshOptimized(kvp.Key, kvp.Value);
                     }
                 }
             }
         }
 
-        private void RenderLayerMeshOptimized(Vector3 size, List<Vector3> centers, int depth)
+        private void RenderLayerMeshOptimized(float size, List<Vector3> centers)
         {
             if (centers.Count == 0) return;
 
@@ -115,11 +115,10 @@ namespace Geometry.OctreeUI
                 }
             }
 
-            var rnd = new Random();
             var a = 127;
-            var r = 255 * MathF.Sin(size.X);
-            var g = 255 * MathF.Atan(size.Z);
-            var b = 255 * MathF.Sqrt(size.Y);
+            var r = 255 * MathF.Sin(size);
+            var g = 255 * MathF.Atan(size);
+            var b = 255 * MathF.Sqrt(size);
             var color = Color.FromArgb((byte)a, (byte)r, (byte)g, (byte)b);
 
             var material = new DiffuseMaterial(new SolidColorBrush(color));
@@ -134,7 +133,7 @@ namespace Geometry.OctreeUI
             MainViewport.Children.Add(visual);
         }
 
-        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth, Dictionary<Vector3, List<Vector3>> sizeGroups)
+        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth, Dictionary<float, List<Vector3>> sizeGroups)
         {
             if (currentDepth == targetDepth)
             {
@@ -172,20 +171,20 @@ namespace Geometry.OctreeUI
             return node.IsLeaf && node.IsSolid;
         }
 
-        private MeshGeometry3D GenerateCube(Vector3 size)
+        private MeshGeometry3D GenerateCube(float size)
         {
             var mesh = new MeshGeometry3D();
 
             var points = new Point3D[]
             {
-                new (-size.X, -size.Y, -size.Z),
-                new (size.X, -size.Y, -size.Z),
-                new (size.X, size.Y, -size.Z),
-                new (-size.X, size.Y, -size.Z),
-                new (-size.X, -size.Y, size.Z),
-                new (size.X, -size.Y, size.Z),
-                new (size.X, size.Y, size.Z),
-                new (-size.X, size.Y, size.Z),
+                new (-size, -size, -size),
+                new (size, -size, -size),
+                new (size, size, -size),
+                new (-size, size, -size),
+                new (-size, -size, size),
+                new (size, -size, size),
+                new (size, size, size),
+                new (-size, size, size),
             };
 
             foreach (var point in points)
@@ -350,7 +349,7 @@ namespace Geometry.OctreeUI
             var height = Convert.ToSingle(string.IsNullOrEmpty(CylinderHeight.Text) ? 0f : CylinderHeight.Text.Replace('.', ','));
 
             var position = new Vector3(x, y, z);
-            var size = new Vector3(radius * 2f, height * 2f, radius * 2f);
+            var size = MathF.Max(radius, height) * 2f;
             var bounds = new BoundingBox(position, size);
 
             var tree = new Octree(bounds, _currentMinSize);
@@ -372,7 +371,7 @@ namespace Geometry.OctreeUI
             var radius = Convert.ToSingle(string.IsNullOrEmpty(SphereRadius.Text) ? 0f : SphereRadius.Text.Replace('.', ','));
 
             var position = new Vector3(x, y, z);
-            var size = new Vector3(radius * 2f);
+            var size = radius * 2f;
             var bounds = new BoundingBox(position, size);
 
             var tree = new Octree(bounds, _currentMinSize);

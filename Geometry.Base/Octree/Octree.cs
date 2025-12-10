@@ -16,9 +16,7 @@ namespace Geometry.Base.Octree
         {
             var size = node.Bounds.Size;
 
-            bool shouldBeLeaf = size.X / 2f <= minOctantSize ||
-                               size.Y / 2f <= minOctantSize ||
-                               size.Z / 2f <= minOctantSize;
+            bool shouldBeLeaf = size / 2f <= minOctantSize;
 
             if (shouldBeLeaf)
             {
@@ -27,17 +25,15 @@ namespace Geometry.Base.Octree
             }
 
             node.Children = new OctreeNode[8];
-            var childrenSizeX = size.X / 4f;
-            var childrenSizeY = size.Y / 4f;
-            var childrenSizeZ = size.Z / 4f;
+            var childrenSize = size / 4f;
             var center = node.Bounds.Center;
 
             for (int i = 0; i < 8; i++)
             {
                 var offset = new Vector3(
-                    (i & 1) == 0 ? -childrenSizeX : childrenSizeX,
-                    (i & 2) == 0 ? -childrenSizeY : childrenSizeY,
-                    (i & 4) == 0 ? -childrenSizeZ : childrenSizeZ
+                    (i & 1) == 0 ? -childrenSize : childrenSize,
+                    (i & 2) == 0 ? -childrenSize : childrenSize,
+                    (i & 4) == 0 ? -childrenSize : childrenSize
                 );
 
                 var childBoxSize = size / 2f;
@@ -113,7 +109,7 @@ namespace Geometry.Base.Octree
         {
             if (node.IsLeaf)
             {
-                return node.IsSolid ? node.Bounds.Size.X * node.Bounds.Size.Y * node.Bounds.Size.Z : 0;
+                return node.IsSolid ? node.Bounds.Size * node.Bounds.Size * node.Bounds.Size : 0;
             }
 
             var volume = 0f;

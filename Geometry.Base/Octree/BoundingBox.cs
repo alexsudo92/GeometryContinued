@@ -2,21 +2,15 @@
 
 namespace Geometry.Base.Octree
 {
-    public struct BoundingBox
+    public struct BoundingBox(Vector3 center, float size)
     {
-        public Vector3 Center { get; set; }
-        public Vector3 Size { get; set; }
+        public Vector3 Center { get; set; } = center;
+        public float Size { get; set; } = size;
 
-        public readonly Vector3 Max => new(Center.X + Size.X / 2f, Center.Y + Size.Y / 2f, Center.Z + Size.Z / 2f);
-        public readonly Vector3 Min => new(Center.X - Size.X / 2f, Center.Y - Size.Y / 2f, Center.Z - Size.Z / 2f);
+        public readonly Vector3 Max => new(Center.X + Size / 2f, Center.Y + Size / 2f, Center.Z + Size / 2f);
+        public readonly Vector3 Min => new(Center.X - Size / 2f, Center.Y - Size / 2f, Center.Z - Size / 2f);
 
-        public BoundingBox(Vector3 center, Vector3 size)
-        {
-            Center = center;
-            Size = size;
-        }
-
-        public bool ContainsPoint(Vector3 point)
+        public readonly bool ContainsPoint(Vector3 point)
         {
             var min = Min;
             var max = Max;
