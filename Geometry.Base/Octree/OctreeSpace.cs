@@ -55,21 +55,21 @@ namespace Geometry.Base.Octree
             var max2 = box2.Max;
 
             var combinedMin = new Vector3(
-                Math.Min(min1.X, min2.X),
-                Math.Min(min1.Y, min2.Y),
-                Math.Min(min1.Z, min2.Z)
+                MathF.Min(min1.X, min2.X),
+                MathF.Min(min1.Y, min2.Y),
+                MathF.Min(min1.Z, min2.Z)
             );
 
             var combinedMax = new Vector3(
-                Math.Max(max1.X, max2.X),
-                Math.Max(max1.Y, max2.Y),
-                Math.Max(max1.Z, max2.Z)
+                MathF.Max(max1.X, max2.X),
+                MathF.Max(max1.Y, max2.Y),
+                MathF.Max(max1.Z, max2.Z)
             );
 
             var center = (combinedMin + combinedMax) / 2;
             var size = combinedMax - combinedMin;
 
-            return new BoundingBox(center, size.X);
+            return new BoundingBox(center, MathF.Max(size.X, MathF.Max(size.Y, size.Z)));
         }
 
         private static BoundingBox? GetIntersectionBounds(BoundingBox box1, BoundingBox box2)
@@ -80,15 +80,15 @@ namespace Geometry.Base.Octree
             var max2 = box2.Max;
 
             var intersectionMin = new Vector3(
-                Math.Max(min1.X, min2.X),
-                Math.Max(min1.Y, min2.Y),
-                Math.Max(min1.Z, min2.Z)
+                MathF.Max(min1.X, min2.X),
+                MathF.Max(min1.Y, min2.Y),
+                MathF.Max(min1.Z, min2.Z)
             );
 
             var intersectionMax = new Vector3(
-                Math.Min(max1.X, max2.X),
-                Math.Min(max1.Y, max2.Y),
-                Math.Min(max1.Z, max2.Z)
+                MathF.Min(max1.X, max2.X),
+                MathF.Min(max1.Y, max2.Y),
+                MathF.Min(max1.Z, max2.Z)
             );
 
             if (intersectionMin.X >= intersectionMax.X ||
@@ -101,7 +101,7 @@ namespace Geometry.Base.Octree
             var center = (intersectionMin + intersectionMax) / 2;
             var size = intersectionMax - intersectionMin;
 
-            return new BoundingBox(center, size.X);
+            return new BoundingBox(center, MathF.Max(size.X, MathF.Max(size.Y, size.Z)));
         }
     }
 }

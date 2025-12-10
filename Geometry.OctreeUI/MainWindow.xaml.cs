@@ -16,7 +16,7 @@ namespace Geometry.OctreeUI
         private float _currentMinSize = 1f;
         private readonly Dictionary<float, MeshGeometry3D> _cache = [];
 
-        // Переменные для управления камерой
+        // Камера
         private PerspectiveCamera _camera;
         private Point3D _cameraPosition;
         private Vector3D _cameraLookDirection;
@@ -44,43 +44,30 @@ namespace Geometry.OctreeUI
             MinSizeSlider.ValueChanged += MinSizeSlider_ValueChanged;
         }
 
-        private void InitializeCamera()
+        #region Rendering
+
+        private void AddModel(Octree tree, OctreeModel treeModel)
         {
-            _cameraPosition = new(20, 20, 20);
-            _cameraLookDirection = new(-1, -1, -1);
-            _cameraUpDirection = new(0, 1, 0);
-
-            _camera = new PerspectiveCamera(
-                _cameraPosition,
-                _cameraLookDirection,
-                _cameraUpDirection,
-                45f
-            );
-
-            MainViewport.Camera = _camera;
+            _space.Octrees.Add(tree);
+            OctreeModels.Add(treeModel);
         }
 
         private void RefreshVisualization()
         {
             MainViewport.Children.Clear();
 
-            var maxDepth = 10;
+            var sizeGroups = new Dictionary<float, List<Vector3>>();
 
-            for (var depth = 0; depth <= maxDepth; depth++)
+            foreach (var space in _space.Octrees)
             {
-                var sizeGroups = new Dictionary<float, List<Vector3>>();
+                CollectNodesByDepth(space.Root, sizeGroups);
+            }
 
-                foreach (var space in _space.Octrees)
+            foreach (var kvp in sizeGroups)
+            {
+                if (kvp.Value.Count > 0)
                 {
-                    CollectNodesByDepth(space.Root, depth, 0, sizeGroups);
-                }
-
-                foreach (var kvp in sizeGroups)
-                {
-                    if (kvp.Value.Count > 0)
-                    {
-                        RenderLayerMeshOptimized(kvp.Key, kvp.Value);
-                    }
+                    RenderLayerMeshOptimized(kvp.Key, kvp.Value);
                 }
             }
         }
@@ -133,42 +120,32 @@ namespace Geometry.OctreeUI
             MainViewport.Children.Add(visual);
         }
 
-        private void CollectNodesByDepth(OctreeNode node, int targetDepth, int currentDepth, Dictionary<float, List<Vector3>> sizeGroups)
+        private void CollectNodesByDepth(OctreeNode node, Dictionary<float, List<Vector3>> sizeGroups)
         {
-            if (currentDepth == targetDepth)
+
+            if (node.IsLeaf && node.IsSolid)
             {
+                var size = node.Bounds.Size;
+                var center = node.Bounds.Center;
 
-                if (ShouldRenderNode(node))
+                if (!sizeGroups.TryGetValue(size, out List<Vector3>? value))
                 {
-                    var size = node.Bounds.Size;
-                    var center = node.Bounds.Center;
-
-                    if (!sizeGroups.TryGetValue(size, out List<Vector3>? value))
-                    {
-                        value = [];
-                        sizeGroups[size] = value;
-                    }
-
-                    value.Add(center * 2f);
-                    node.IsRendered = true;
+                    value = [];
+                    sizeGroups[size] = value;
                 }
 
+                value.Add(center * 2f);
             }
-            else if (currentDepth < targetDepth && node.Children != null)
+            else if (node.Children != null)
             {
                 foreach (var child in node.Children)
                 {
                     if (child != null)
                     {
-                        CollectNodesByDepth(child, targetDepth, currentDepth + 1, sizeGroups);
+                        CollectNodesByDepth(child, sizeGroups);
                     }
                 }
             }
-        }
-
-        private bool ShouldRenderNode(OctreeNode node)
-        {
-            return node.IsLeaf && node.IsSolid;
         }
 
         private MeshGeometry3D GenerateCube(float size)
@@ -211,8 +188,25 @@ namespace Geometry.OctreeUI
 
             return mesh;
         }
+        #endregion
 
-        #region CameraControls
+        #region Camera
+        private void InitializeCamera()
+        {
+            _cameraPosition = new(20, 20, 20);
+            _cameraLookDirection = new(-1, -1, -1);
+            _cameraUpDirection = new(0, 1, 0);
+
+            _camera = new PerspectiveCamera(
+                _cameraPosition,
+                _cameraLookDirection,
+                _cameraUpDirection,
+                45f
+            );
+
+            MainViewport.Camera = _camera;
+        }
+
         private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.RightButton == MouseButtonState.Pressed)
@@ -333,6 +327,7 @@ namespace Geometry.OctreeUI
         }
         #endregion
 
+        #region UI
         private void MinSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             MinSizeText.Text = e.NewValue.ToString("F1");
@@ -347,17 +342,24 @@ namespace Geometry.OctreeUI
 
             var radius = Convert.ToSingle(string.IsNullOrEmpty(CylinderRadius.Text) ? 0f : CylinderRadius.Text.Replace('.', ','));
             var height = Convert.ToSingle(string.IsNullOrEmpty(CylinderHeight.Text) ? 0f : CylinderHeight.Text.Replace('.', ','));
+            var directionIndex = Direction.SelectedIndex;
+
 
             var position = new Vector3(x, y, z);
             var size = MathF.Max(radius, height) * 2f;
             var bounds = new BoundingBox(position, size);
+            var direction = directionIndex switch
+            {
+                0 => Vector3.UnitX,
+                1 => Vector3.UnitY,
+                2 => Vector3.UnitZ,
+            };
 
             var tree = new Octree(bounds, _currentMinSize);
-            var cylinder = GeometricPrimitives.CreateCylinder(position, Vector3.UnitY, radius, height);
+            var cylinder = GeometricPrimitives.CreateCylinder(position, direction, radius, height);
             tree.SetObject(cylinder);
 
-            _space.Octrees.Add(tree);
-            AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Цилиндр\nR={radius}\nH={height}", Position = position, Volume = tree.GetVolume() });
+            AddModel(tree, new OctreeModel { Name = $"{OctreeModels.Count + 1}. Цилиндр\nR={radius}\nH={height}", Position = position, Volume = tree.GetVolume() });
 
             RefreshVisualization();
         }
@@ -378,15 +380,9 @@ namespace Geometry.OctreeUI
             var sphere = GeometricPrimitives.CreateSphere(position, radius);
             tree.SetObject(sphere);
 
-            _space.Octrees.Add(tree);
-            AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Сфера\nR={radius}", Position = position, Volume = tree.GetVolume() });
+            AddModel(tree, new OctreeModel { Name = $"{OctreeModels.Count + 1}. Сфера\nR={radius}", Position = position, Volume = tree.GetVolume() });
 
             RefreshVisualization();
-        }
-
-        private void AddModel(OctreeModel octreeModel)
-        {
-            OctreeModels.Add(octreeModel);
         }
 
         private void GetPoint_Click(object sender, RoutedEventArgs e)
@@ -397,13 +393,13 @@ namespace Geometry.OctreeUI
 
             var testObject = TestPointObject.SelectedIndex;
 
-            var tree = _space.Octrees[testObject];
-
-            if (tree is null)
+            if (testObject == -1)
             {
                 MessageBox.Show("Объект не выбран");
                 return;
             }
+
+            var tree = _space.Octrees[testObject];
 
             var inside = tree.ContainsPoint(new Vector3(x, y, z));
 
@@ -450,8 +446,7 @@ namespace Geometry.OctreeUI
                 OctreeModels.Remove(model1);
                 OctreeModels.Remove(model2);
 
-                _space.Octrees.Add(tree);
-                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Вычитание", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                AddModel(tree, new OctreeModel { Name = $"{OctreeModels.Count + 1}. Вычитание", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
                 RefreshVisualization();
             }
             else
@@ -487,10 +482,8 @@ namespace Geometry.OctreeUI
                 OctreeModels.Remove(model1);
                 OctreeModels.Remove(model2);
 
-                _space.Octrees.Add(tree);
-                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Пересечение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                AddModel(tree, new OctreeModel { Name = $"{OctreeModels.Count + 1}. Пересечение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
                 RefreshVisualization();
-
             }
             else
             {
@@ -525,10 +518,8 @@ namespace Geometry.OctreeUI
                 OctreeModels.Remove(model1);
                 OctreeModels.Remove(model2);
 
-                _space.Octrees.Add(tree);
-                AddModel(new OctreeModel { Name = $"{OctreeModels.Count + 1}. Объединение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
+                AddModel(tree, new OctreeModel { Name = $"{OctreeModels.Count + 1}. Объединение", Position = tree.Bounds.Center, Volume = tree.GetVolume() });
                 RefreshVisualization();
-
             }
             else
             {
@@ -562,5 +553,6 @@ namespace Geometry.OctreeUI
                 return;
             }
         }
+        #endregion
     }
 }

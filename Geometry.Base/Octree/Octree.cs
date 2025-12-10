@@ -82,7 +82,7 @@ namespace Geometry.Base.Octree
 
         public float GetVolume()
         {
-            return CalculateVolumeRecursive(Root);
+            return GetVolumeRecursive(Root);
         }
 
         private bool ContainsPointRecursive(OctreeNode node, Vector3 point)
@@ -105,7 +105,7 @@ namespace Geometry.Base.Octree
             return false;
         }
 
-        private float CalculateVolumeRecursive(OctreeNode node)
+        private float GetVolumeRecursive(OctreeNode node)
         {
             if (node.IsLeaf)
             {
@@ -117,7 +117,7 @@ namespace Geometry.Base.Octree
             {
                 foreach (var child in node.Children)
                 {
-                    volume += CalculateVolumeRecursive(child);
+                    volume += GetVolumeRecursive(child);
                 }
             }
 

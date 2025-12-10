@@ -118,23 +118,11 @@ namespace Geometry.UI.Services
             }
         }
 
-        public void ScaleAndMoveTo(float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
+        public void MoveToAndScale(float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
         {
             if ((areaX1 != 0 && areaY1 != 0) || (areaX2 != 0 && areaY2 != 0))
             {
                 var (MinX, MinY, MaxX, MaxY) = _figureData.GetSizeRectangle();
-
-                var areaWidth = areaX2 - areaX1;
-                var areaHeight = areaY2 - areaY1;
-
-                var fWidth = MaxX - MinX;
-                var fHeight = MaxY - MinY;
-
-                var k = MathF.Min(areaWidth / fWidth, areaHeight / fHeight);
-                ScaleFigure(k, false);
-
-
-                (MinX, MinY, MaxX, MaxY) = _figureData.GetSizeRectangle();
 
                 var midX = (MinX + MaxX) / 2;
                 var midY = (MinY + MaxY) / 2;
@@ -143,7 +131,16 @@ namespace Geometry.UI.Services
                 var tY = (areaY2 + areaY1) / 2 - midY;
 
                 var vector = new Vector3(tX, tY, 0);
-                TranslateFigure(vector, shouldRender);
+                TranslateFigure(vector, false);
+
+                var areaWidth = areaX2 - areaX1;
+                var areaHeight = areaY2 - areaY1;
+
+                var fWidth = MaxX - MinX;
+                var fHeight = MaxY - MinY;
+
+                var k = MathF.Min(areaWidth / fWidth, areaHeight / fHeight);
+                ScaleFigure(k, true);
             }
         }
 

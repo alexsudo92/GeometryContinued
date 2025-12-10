@@ -22,7 +22,7 @@
                                TickFrequency="0.1" IsSnapToTickEnabled="True" Margin="0,5"/>
                         <TextBlock x:Name="MinSizeText" Text="1" HorizontalAlignment="Center"/>
 
-                        <Button x:Name="ClearVisualization" Content="Очистить визуализацию" Margin="0,10" Click="ClearVisualization_Click"/>
+                        <Button x:Name="ClearVisualization" Margin="0,10" Click="ClearVisualization_Click">Очистить пространство</Button>
                         <Button x:Name="CameraReset" Click="CameraReset_Click">Сбросить камеру</Button>
                     </StackPanel>
                 </Expander>
@@ -52,10 +52,15 @@
                             <TextBox x:Name="CylinderRadius"/>
                             <TextBlock>Высота:</TextBlock>
                             <TextBox x:Name="CylinderHeight"/>
-
+                            <TextBlock>Направление:</TextBlock>
+                            <ComboBox x:Name="Direction" SelectedIndex="1">
+                                <ComboBoxItem>X</ComboBoxItem>
+                                <ComboBoxItem>Y</ComboBoxItem>
+                                <ComboBoxItem>Z</ComboBoxItem>
+                            </ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
-                            <Button x:Name="BuildCylinder" Click="BuildCylinder_Click">Добавить</Button>
+                            <Button x:Name="BuildCylinder" Click="BuildCylinder_Click">Создать</Button>
                         </StackPanel>
                     </Grid>
                 </Expander>
@@ -87,7 +92,7 @@
 
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="5">
-                            <Button x:Name="BuildSphere" Click="BuildSphere_Click">Добавить</Button>
+                            <Button x:Name="BuildSphere" Click="BuildSphere_Click">Создать</Button>
                         </StackPanel>
                     </Grid>
                 </Expander>
@@ -100,11 +105,10 @@
             MouseMove="Viewport_MouseMove"
             MouseWheel="Viewport_MouseWheel"
             Grid.Column="1"
-            x:Name="MainViewport"/>
+            x:Name="MainViewport">
+        </Viewport3D>
 
         <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            
-            
             <StackPanel Margin="10">
                 <ListView ItemsSource="{Binding OctreeModels}" x:Name="ModelsList" Margin="0,10,0,0">
                     <ListView.View>

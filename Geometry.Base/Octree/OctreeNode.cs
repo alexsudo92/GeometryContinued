@@ -6,6 +6,5 @@
         public OctreeNode[]? Children { get; set; } = null;
         public bool IsLeaf => Children == null;
         public bool IsSolid { get; set; } = false;
-        public bool IsRendered { get; set; }
     }
 }
