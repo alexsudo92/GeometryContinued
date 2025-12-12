@@ -15,6 +15,7 @@ namespace Geometry.UI
 
             var yamlService = new YamlService(files);
             var figureService = new FigureService();
+
             DataContext = new MainViewModel(yamlService, figureService);
         }
     }

@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Geometry.UI", "Geometry.UI\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Geometry.Base", "Geometry.Base\Geometry.Base.csproj", "{1A2D0F6B-C023-4FE6-83B5-C0FD96DB9E75}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Geometry.Tests", "Geometry.Tests\Geometry.Tests.csproj", "{E7E166B0-720A-4797-8F2A-7C54D4F0CC5F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{36D591C7-65C7-A0D1-1CBC-10CDE441BDC8}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -30,10 +28,6 @@ Global
 		{1A2D0F6B-C023-4FE6-83B5-C0FD96DB9E75}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A2D0F6B-C023-4FE6-83B5-C0FD96DB9E75}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A2D0F6B-C023-4FE6-83B5-C0FD96DB9E75}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E7E166B0-720A-4797-8F2A-7C54D4F0CC5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7E166B0-720A-4797-8F2A-7C54D4F0CC5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7E166B0-720A-4797-8F2A-7C54D4F0CC5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7E166B0-720A-4797-8F2A-7C54D4F0CC5F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9A5835BB-497D-4D28-B4E4-15C7E102B3F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9A5835BB-497D-4D28-B4E4-15C7E102B3F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A5835BB-497D-4D28-B4E4-15C7E102B3F8}.Release|Any CPU.ActiveCfg = Release|Any CPU

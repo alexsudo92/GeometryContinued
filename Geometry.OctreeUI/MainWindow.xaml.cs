@@ -60,19 +60,19 @@ namespace Geometry.OctreeUI
 
             foreach (var space in _space.Octrees)
             {
-                CollectNodesByDepth(space.Root, sizeGroups);
+                CollectNodes(space.Root, sizeGroups);
             }
 
             foreach (var kvp in sizeGroups)
             {
                 if (kvp.Value.Count > 0)
                 {
-                    RenderLayerMeshOptimized(kvp.Key, kvp.Value);
+                    RenderMesh(kvp.Key, kvp.Value);
                 }
             }
         }
 
-        private void RenderLayerMeshOptimized(float size, List<Vector3> centers)
+        private void RenderMesh(float size, List<Vector3> centers)
         {
             if (centers.Count == 0) return;
 
@@ -120,7 +120,7 @@ namespace Geometry.OctreeUI
             MainViewport.Children.Add(visual);
         }
 
-        private void CollectNodesByDepth(OctreeNode node, Dictionary<float, List<Vector3>> sizeGroups)
+        private void CollectNodes(OctreeNode node, Dictionary<float, List<Vector3>> sizeGroups)
         {
 
             if (node.IsLeaf && node.IsSolid)
@@ -142,7 +142,7 @@ namespace Geometry.OctreeUI
                 {
                     if (child != null)
                     {
-                        CollectNodesByDepth(child, sizeGroups);
+                        CollectNodes(child, sizeGroups);
                     }
                 }
             }

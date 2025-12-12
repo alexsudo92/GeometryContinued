@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Windows;
 
 namespace Geometry.UI.ViewModels
@@ -31,6 +32,9 @@ namespace Geometry.UI.ViewModels
         private float _areaY2 = 500;
         private float _areaWidth;
         private float _areaHeight;
+        private float _animationX;
+        private float _animationY;
+        private float _animationZ;
 
         public float Scale
         {
@@ -108,22 +112,51 @@ namespace Geometry.UI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _areaHeight, value);
         }
 
+        public float AnimationX
+        {
+            get => _animationX;
+            set => this.RaiseAndSetIfChanged(ref _animationX, value);
+        }
+        public float AnimationY
+        {
+            get => _animationY;
+            set => this.RaiseAndSetIfChanged(ref _animationY, value);
+        }
+        public float AnimationZ
+        {
+            get => _animationZ;
+            set => this.RaiseAndSetIfChanged(ref _animationZ, value);
+        }
 
+        public ReactiveCommand<Unit, Unit> AddFigureCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> RemoveFigureCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ChangeScaleCommand { get; set; }
         public ReactiveCommand<Unit, Unit> TranslateCommand { get; set; }
         public ReactiveCommand<Unit, Unit> ShearCommand { get; set; }
         public ReactiveCommand<Unit, Unit> PerspectiveCommand { get; set; }
         public ReactiveCommand<bool, Unit> ChangeAreaVisibilityCommand { get; set; }
         public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> StartAnimationCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> StopAnimationCommand { get; set; }
 
-        private readonly ReadOnlyObservableCollection<FigureYaml> _figures;
-        public ReadOnlyObservableCollection<FigureYaml> Figures => _figures;
+        private readonly ReadOnlyObservableCollection<FigureYaml> _figuresYaml;
+        public ReadOnlyObservableCollection<FigureYaml> FiguresYaml => _figuresYaml;
 
         private readonly ReadOnlyObservableCollection<Outline> _lines;
         public ReadOnlyObservableCollection<Outline> Lines => _lines;
 
-        private FigureYaml _selectedFigure;
-        public FigureYaml SelectedFigure
+        private FigureYaml _selectedYamlFigure;
+        public FigureYaml SelectedYamlFigure
+        {
+            get => _selectedYamlFigure;
+            set => this.RaiseAndSetIfChanged(ref _selectedYamlFigure, value);
+        }
+
+        private readonly ReadOnlyObservableCollection<RenderFigure> _figures;
+        public ReadOnlyObservableCollection<RenderFigure> Figures => _figures;
+
+        private RenderFigure _selectedFigure;
+        public RenderFigure SelectedFigure
         {
             get => _selectedFigure;
             set => this.RaiseAndSetIfChanged(ref _selectedFigure, value);
@@ -154,7 +187,7 @@ namespace Geometry.UI.ViewModels
             _yamlService.Figures
                 .SortBy(x => x.Id)
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Bind(out _figures)
+                .Bind(out _figuresYaml)
                 .Subscribe();
 
             _figureService.Lines
@@ -162,13 +195,13 @@ namespace Geometry.UI.ViewModels
                 .Bind(out _lines)
                 .Subscribe();
 
+            _figureService.Figures.ObserveOn(RxApp.MainThreadScheduler).Bind(out _figures).Subscribe();
+
             this.WhenAnyValue(x => x.SelectedFigure)
                  .Subscribe(x =>
                  {
                      ResetValues();
-                     IsAvailable = SelectedFigure is not null;
-                     if (x is not null)
-                         _figureService.SetFigureData(x.AsFigure());
+                     IsAvailable = x is not null;
                  });
 
             this.WhenAnyValue(x => x.Scale)
@@ -176,30 +209,40 @@ namespace Geometry.UI.ViewModels
                 .Subscribe(x => Scale = x);
 
             this.WhenAnyValue(x => x.XAngle)
-                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
-                    var delta = x - _prevX;
-                    _prevX = x;
-                    _figureService.RotateFigure(delta, Vector4.UnitX);
+                    if (x != 0)
+                    {
+                        var delta = x - _prevX;
+                        _prevX = x;
+                        if (_selectedFigure is not null)
+                            _figureService.RotateFigure(_figures.IndexOf(_selectedFigure), delta, Vector4.UnitX);
+                    }
                 });
 
             this.WhenAnyValue(x => x.YAngle)
-                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
-                    var delta = x - _prevY;
-                    _prevY = x;
-                    _figureService.RotateFigure(delta, Vector4.UnitY);
+                    if (x != 0)
+                    {
+                        var delta = x - _prevY;
+                        _prevY = x;
+                        if (_selectedFigure is not null)
+                            _figureService.RotateFigure(_figures.IndexOf(_selectedFigure), delta, Vector4.UnitY);
+                    }
                 });
 
             this.WhenAnyValue(x => x.ZAngle)
-                //.Throttle(TimeSpan.FromMilliseconds(100))
                 .Subscribe(x =>
                 {
-                    var delta = x - _prevZ;
-                    _prevZ = x;
-                    _figureService.RotateFigure(delta, Vector4.UnitZ);
+                    if (x != 0)
+                    {
+                        var delta = x - _prevZ;
+                        _prevZ = x;
+                        if (_selectedFigure is not null)
+
+                            _figureService.RotateFigure(_figures.IndexOf(_selectedFigure), delta, Vector4.UnitZ);
+                    }
                 });
 
             this.WhenAnyValue(x => x.AreaX1)
@@ -211,29 +254,46 @@ namespace Geometry.UI.ViewModels
             this.WhenAnyValue(x => x.AreaY2)
                 .Subscribe(x => AreaHeight = x - this.AreaY1);
 
+            AddFigureCommand = ReactiveCommand.Create(() =>
+            {
+                if (_selectedYamlFigure is not null)
+                    _figureService.AddFigure(_selectedYamlFigure);
+            });
+
+            RemoveFigureCommand = ReactiveCommand.Create(() =>
+            {
+                if (_selectedFigure is not null)
+                    _figureService.RemoveFigure(_figures.IndexOf(_selectedFigure));
+            });
+
             ChangeScaleCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.ScaleFigure(Scale);
+                if (_selectedFigure is not null)
+                    _figureService.ScaleFigure(_figures.IndexOf(_selectedFigure), Scale);
             });
 
             TranslateCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.TranslateFigure(new Vector3(TranslateX, TranslateY, TranslateZ));
+                if (_selectedFigure is not null)
+                    _figureService.TranslateFigure(_figures.IndexOf(_selectedFigure), new Vector3(TranslateX, TranslateY, TranslateZ));
             });
 
             ShearCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.ShearFigure(yx: Shear);
+                if (_selectedFigure is not null)
+                    _figureService.ShearFigure(_figures.IndexOf(_selectedFigure), yx: Shear);
             });
 
             PerspectiveCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.ProjectFigureToX(Perspective);
+                if (_selectedFigure is not null)
+                    _figureService.ProjectFigureToX(_figures.IndexOf(_selectedFigure), Perspective);
             });
 
             MoveToAreaCommand = ReactiveCommand.Create(() =>
             {
-                _figureService.ScaleAndMoveTo(AreaX1, AreaY1, AreaX2, AreaY2);
+                if (_selectedFigure is not null)
+                    _figureService.MoveToAndScale(_figures.IndexOf(_selectedFigure), AreaX1, AreaY1, AreaX2, AreaY2);
             });
 
             ChangeAreaVisibilityCommand = ReactiveCommand.Create((bool isChecked) =>
@@ -243,7 +303,29 @@ namespace Geometry.UI.ViewModels
                 else
                     IsAreaVisible = Visibility.Hidden;
             });
+
+            StartAnimationCommand = ReactiveCommand.CreateFromTask(async () =>
+            {
+                _source = new();
+                var token = _source.Token;
+
+                if (_selectedFigure is not null)
+                    await _figureService.SmoothTranslateFigure(
+                        _figures.IndexOf(_selectedFigure),
+                        new Vector3(AnimationX, AnimationY, AnimationZ),
+                        token);
+            });
+
+            StopAnimationCommand = ReactiveCommand.Create(() =>
+            {
+                if (_selectedFigure is not null)
+                {
+                    _source.Cancel();
+                }
+            }, StartAnimationCommand.IsExecuting);
         }
+
+        private CancellationTokenSource _source;
 
         public void ResetValues()
         {
