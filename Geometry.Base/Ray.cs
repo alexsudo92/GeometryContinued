@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 namespace Geometry.Base
 {
-    public class Ray(Vector3 position, Vector3 direction)
+    public class Ray(Vector2 position, Vector2 direction)
     {
-        public Vector3 Position { get; } = position;
-        public Vector3 Direction { get; } = Vector3.Normalize(direction);
+        public Vector2 Position { get; } = position;
+        public Vector2 Direction { get; } = Vector2.Normalize(direction);
     }
 }

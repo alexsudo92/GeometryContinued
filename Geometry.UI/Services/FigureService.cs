@@ -3,7 +3,6 @@ using Geometry.Base;
 using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -54,7 +53,9 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                if (scale != 0 && scale != 1f)
+                var figure = _figures.Items[id].Figure;
+
+                if (scale != 0f && scale != 1f)
                 {
                     var m = Affine.GetScaleMatrix(scale);
 
@@ -63,7 +64,7 @@ namespace Geometry.UI.Services
                     if (scale > 0f && scale < 1f)
                         AddToHistory(_figures.Items[id], m, TransformType.ScaleDown);
 
-                    _figures.Items[id].Figure.TransformAllVertices(m);
+                    figure.TransformAllVertices(m);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -75,11 +76,13 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                if (angle != 0)
+                var figure = _figures.Items[id].Figure;
+
+                if (angle != 0f)
                 {
                     var m = Affine.GetRotationMatrix(angle, axis);
                     AddToHistory(_figures.Items[id], m, TransformType.Rotation);
-                    _figures.Items[id].Figure.TransformAllVertices(m);
+                    figure.TransformAllVertices(m);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -91,42 +94,45 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
+                var figure = _figures.Items[id].Figure;
+
                 var m = Affine.GetTranslationMatrix(vector);
                 AddToHistory(_figures.Items[id], m, TransformType.Translation);
-                _figures.Items[id].Figure.TransformAllVertices(m);
+                figure.TransformAllVertices(m);
 
                 if (shouldRender)
                     RenderAllFigures();
             }
         }
 
-        public async Task SmoothTranslateFigure(int id, Vector3 direction, CancellationToken cancellationToken, bool shouldRender = true)
+        public async Task SmoothTranslateFigure(int id, Vector2 direction, CancellationToken cancellationToken, bool shouldRender = true)
         {
             if (_figures.Items[id] is not null)
             {
-                var distance = direction.Length();
-                var stepVector = Vector3.Normalize(direction);
+                var figure = _figures.Items[id].Figure;
 
-                for (var i = 0; i < distance; i++)
+                var distance = direction.Length();
+                var stepVector = Vector2.Normalize(direction);
+
+                for (var i = 0f; i < distance; i += stepVector.Length())
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var translationMatrix = Affine.GetTranslationMatrix(stepVector);
-                    _figures.Items[id].Figure.TransformAllVertices(translationMatrix);
+                    var translationMatrix = Affine.GetTranslationMatrix(stepVector.AsVector3());
+                    figure.TransformAllVertices(translationMatrix);
 
-                    bool collision = false;
+                    var collision = false;
                     foreach (var otherItem in _figures.Items)
                     {
                         if (otherItem != _figures.Items[id])
                         {
-                            var size = Vector4.Distance(_figures.Items[id].Figure.Vertices[0].Vector4, _figures.Items[id].Figure.Vertices[1].Vector4) / 2f;
-                            var ray = _figures.Items[id].Figure.RayCast(otherItem.Figure, direction, size);
-                            Debug.WriteLine(ray);
+                            var size = Vector4.Distance(figure.Vertices[0].Vector4, figure.Vertices[1].Vector4) / 2f;
+                            var ray = figure.RayCast(otherItem.Figure, direction, size);
 
                             if (ray)
                             {
-                                collision = true;
+                                collision = ray;
                                 break;
                             }
                         }
@@ -145,15 +151,17 @@ namespace Geometry.UI.Services
             }
         }
 
-        public void ShearFigure(int id, float yx = 0, float xy = 0, bool shouldRender = true)
+        public void ShearFigure(int id, float yx = 0f, float xy = 0f, bool shouldRender = true)
         {
             if (_figures.Items[id] is not null)
             {
-                if (yx != 0 || xy != 0)
+                var figure = _figures.Items[id].Figure;
+
+                if (yx != 0f || xy != 0f)
                 {
                     var m = Affine.GetShearMatrix(yx: yx, xy: xy);
                     AddToHistory(_figures.Items[id], m, TransformType.Shear);
-                    _figures.Items[id].Figure.TransformAllVertices(m);
+                    figure.TransformAllVertices(m);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -165,13 +173,15 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                if (p != 0)
+                var figure = _figures.Items[id].Figure;
+
+                if (p != 0f)
                 {
                     ReverseProjectFigureToX(id, false);
 
-                    var m = Perspective.ToX(1 / p);
+                    var m = Perspective.ToX(1f / p);
                     AddToHistory(_figures.Items[id], m, TransformType.Perspective);
-                    _figures.Items[id].Figure.TransformAllVertices(m);
+                    figure.TransformAllVertices(m);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -183,14 +193,16 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var last = _figures.Items[id].History
-                    .FirstOrDefault(x => x.TransformType == TransformType.Perspective);
+                var figure = _figures.Items[id].Figure;
+                var history = _figures.Items[id].History;
+
+                var last = history.FirstOrDefault(x => x.TransformType == TransformType.Perspective);
 
                 if (last != null)
                 {
                     var iM = last.Invert();
-                    _figures.Items[id].Figure.TransformAllVertices(iM);
-                    _figures.Items[id].History.Remove(last);
+                    figure.TransformAllVertices(iM);
+                    history.Remove(last);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -202,17 +214,19 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                if ((areaX1 != 0 && areaY1 != 0) || (areaX2 != 0 && areaY2 != 0))
+                var figure = _figures.Items[id].Figure;
+
+                if ((areaX1 != 0f && areaY1 != 0f) || (areaX2 != 0f && areaY2 != 0f))
                 {
-                    var (MinX, MinY, MaxX, MaxY) = _figures.Items[id].Figure.GetSizeRectangle();
+                    var (MinX, MinY, MaxX, MaxY) = figure.GetSizeRectangle();
 
-                    var midX = (MinX + MaxX) / 2;
-                    var midY = (MinY + MaxY) / 2;
+                    var midX = (MinX + MaxX) / 2f;
+                    var midY = (MinY + MaxY) / 2f;
 
-                    var tX = (areaX2 + areaX1) / 2 - midX;
-                    var tY = (areaY2 + areaY1) / 2 - midY;
+                    var tX = (areaX2 + areaX1) / 2f - midX;
+                    var tY = (areaY2 + areaY1) / 2f - midY;
 
-                    var vector = new Vector3(tX, tY, 0);
+                    var vector = new Vector3(tX, tY, 0f);
                     TranslateFigure(id, vector, false);
 
                     var areaWidth = areaX2 - areaX1;

@@ -14,7 +14,7 @@ namespace Geometry.UI.ViewModels
 {
     public class MainViewModel : ReactiveObject
     {
-        private float _scale = 1;
+        private float _scale = 1f;
         private float _prevX;
         private float _prevY;
         private float _prevZ;
@@ -26,10 +26,10 @@ namespace Geometry.UI.ViewModels
         private float _tZ;
         private float _shear;
         private float _perspective;
-        private float _areaX1 = -700;
-        private float _areaY1 = -500;
-        private float _areaX2 = 700;
-        private float _areaY2 = 500;
+        private float _areaX1 = -700f;
+        private float _areaY1 = -500f;
+        private float _areaX2 = 700f;
+        private float _areaY2 = 500f;
         private float _areaWidth;
         private float _areaHeight;
         private float _animationX;
@@ -246,13 +246,13 @@ namespace Geometry.UI.ViewModels
                 });
 
             this.WhenAnyValue(x => x.AreaX1)
-                .Subscribe(x => AreaWidth = this.AreaX2 - x);
+                .Subscribe(x => AreaWidth = AreaX2 - x);
             this.WhenAnyValue(x => x.AreaY1)
-                .Subscribe(x => AreaHeight = this.AreaY2 - x);
+                .Subscribe(x => AreaHeight = AreaY2 - x);
             this.WhenAnyValue(x => x.AreaX2)
-                .Subscribe(x => AreaWidth = x - this.AreaX1);
+                .Subscribe(x => AreaWidth = x - AreaX1);
             this.WhenAnyValue(x => x.AreaY2)
-                .Subscribe(x => AreaHeight = x - this.AreaY1);
+                .Subscribe(x => AreaHeight = x - AreaY1);
 
             AddFigureCommand = ReactiveCommand.Create(() =>
             {
@@ -312,7 +312,7 @@ namespace Geometry.UI.ViewModels
                 if (_selectedFigure is not null)
                     await _figureService.SmoothTranslateFigure(
                         _figures.IndexOf(_selectedFigure),
-                        new Vector3(AnimationX, AnimationY, AnimationZ),
+                        new Vector2(AnimationX, AnimationY),
                         token);
             });
 
@@ -329,14 +329,14 @@ namespace Geometry.UI.ViewModels
 
         public void ResetValues()
         {
-            XAngle = 0;
-            YAngle = 0;
-            ZAngle = 0;
-            Scale = 1;
-            TranslateX = 0;
-            TranslateY = 0;
-            TranslateZ = 0;
-            Shear = 0;
+            XAngle = 0f;
+            YAngle = 0f;
+            ZAngle = 0f;
+            Scale = 1f;
+            TranslateX = 0f;
+            TranslateY = 0f;
+            TranslateZ = 0f;
+            Shear = 0f;
         }
     }
 }

@@ -8,21 +8,21 @@ namespace Geometry.Base
 
         public Point4D(float x, float y, float z)
         {
-            Vector4 = new Vector4(x, y, z, 1);
+            Vector4 = new Vector4(x, y, z, 1f);
         }
 
         public void Transform(Matrix4x4 matrix)
         {
-            this.Vector4 = Vector4.Transform(this.Vector4, matrix);
+            Vector4 = Vector4.Transform(Vector4, matrix);
         }
 
         public void Normalize()
         {
-            var w = this.Vector4.W;
-            this.Vector4 = new Vector4(this.Vector4.X / w,
-                                       this.Vector4.Y / w,
-                                       this.Vector4.Z / w,
-                                       1);
+            var w = Vector4.W;
+            Vector4 = new Vector4(Vector4.X / w,
+                                  Vector4.Y / w,
+                                  Vector4.Z / w,
+                                  1f);
         }
     }
 }

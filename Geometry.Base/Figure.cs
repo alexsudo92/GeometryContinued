@@ -11,7 +11,7 @@ namespace Geometry.Base
             foreach (var v in Vertices)
             {
                 v.Transform(matrix);
-                if (v.Vector4.W != 1)
+                if (v.Vector4.W != 1f)
                     v.Normalize();
             }
         }
@@ -27,68 +27,50 @@ namespace Geometry.Base
             return (minX, minY, maxX, maxY);
         }
 
-        public bool CheckCollision(Figure f)
+        public bool RayCast(Figure other, Vector2 direction, float maxDistance)
         {
-            var (MinX, MinY, MaxX, MaxY) = GetSizeRectangle();
-            var rectB = f.GetSizeRectangle();
-
-            return !(MaxX < rectB.MinX ||
-                     rectB.MaxX < MinX ||
-                     MaxY < rectB.MinY ||
-                     rectB.MaxY < MinY);
-        }
-
-        public bool RayCast(Figure other, Vector3 direction, float maxDistance)
-        {
-            var dir = Vector3.Normalize(direction);
+            var normalizedDirection = Vector2.Normalize(direction);
 
             foreach (var vertex in Vertices)
             {
                 var (MinX, MinY, MaxX, MaxY) = GetSizeRectangle();
-                var originCenter = new Vector3((MaxX + MinX) / 2, (MaxY + MinY) / 2, 0f);
-                var originVertex = new Vector3(vertex.Vector4.X, vertex.Vector4.Y, vertex.Vector4.Z);
+                var originCenter = new Vector2((MaxX + MinX) / 2f, (MaxY + MinY) / 2f);
+                var originVertex = new Vector2(vertex.Vector4.X, vertex.Vector4.Y);
 
-                var ray = new Ray(originCenter, dir);
-                var ray2 = new Ray(originVertex, dir);
+                var ray = new Ray(originCenter, normalizedDirection);
+                var ray2 = new Ray(originVertex, normalizedDirection);
 
                 foreach (var edge in other.Edges)
                 {
-                    var a = other.Vertices[edge[0]].Vector4;
-                    var b = other.Vertices[edge[1]].Vector4;
+                    var a = other.Vertices[edge[0]].Vector4.AsVector2();
+                    var b = other.Vertices[edge[1]].Vector4.AsVector2();
 
-                    var rayCenter = RayIntersectsSegment(ray, a, b, out float distance);
-                    var rayVertex = RayIntersectsSegment(ray2, a, b, out float distance2);
+                    var rayCenter = RayIntersectsSegment(ray, a, b);
+                    var (Intersects, Distance) = RayIntersectsSegment(ray2, a, b);
 
-                    if ((rayCenter || rayVertex) && (distance <= maxDistance || distance2 < 1f))
-                    {
+                    if ((rayCenter.Intersects && rayCenter.Distance <= maxDistance) || (Intersects && Distance < 1f))
                         return true;
-                    }
                 }
             }
 
             return false;
         }
 
-        private static bool RayIntersectsSegment(Ray ray, Vector4 a, Vector4 b, out float distanceAlongRay)
+        private static (bool Intersects, float Distance) RayIntersectsSegment(Ray ray, Vector2 a, Vector2 b)
         {
-            distanceAlongRay = float.MaxValue;
-
-            var segDir = b - a;
-            var denom = ray.Direction.X * (-segDir.Y) + ray.Direction.Y * segDir.X;
+            var segmentVector = b - a;
+            var denom = Vector2.Cross(segmentVector, ray.Direction);
 
             if (MathF.Abs(denom) < float.Epsilon)
-                return false;
+                return (false, 0f);
 
-            var t = ((a.X - ray.Position.X) * (-segDir.Y) + (a.Y - ray.Position.Y) * segDir.X) / denom;
-            var u = ((a.X - ray.Position.X) * (-ray.Direction.Y) + (a.Y - ray.Position.Y) * ray.Direction.X) / denom;
+            var distance = -Vector2.Cross(a - ray.Position, segmentVector) / denom;
+            var intersection = -Vector2.Cross(a - ray.Position, ray.Direction) / denom;
 
-            if (t >= 0 && u >= 0 && u <= 1)
-            {
-                distanceAlongRay = t;
-                return true;
-            }
+            if (distance >= 0f && intersection >= 0f && intersection <= 1f)
+                return (true, distance);
 
-            return false;
+            return (false, 0f);
         }
     }
 }
