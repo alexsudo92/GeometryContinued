@@ -13,10 +13,10 @@ namespace Geometry.UI
 
             var files = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.yaml");
 
-            var yamlService = new YamlService(files);
+            var loaderService = new FigureLoaderService(files);
             var figureService = new FigureService();
 
-            DataContext = new MainViewModel(yamlService, figureService);
+            DataContext = new MainViewModel(loaderService, figureService);
         }
     }
 }

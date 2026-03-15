@@ -10,7 +10,7 @@
         Title="MainWindow"
         MinHeight="300"
         MinWidth="500"
-        Height="900"
+        Height="600"
         Width="900">
     <Grid>
         <Grid.ColumnDefinitions>
@@ -24,7 +24,7 @@
                 <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Добавить фигуру</TextBlock>
                 <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
-                <ListView ItemsSource="{Binding FiguresYaml}" SelectedItem="{Binding SelectedYamlFigure}">
+                <ListView ItemsSource="{Binding AvaiableFigures}" SelectedItem="{Binding SelectedAvailableFigure}">
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="16" Text="{Binding Name}"/>

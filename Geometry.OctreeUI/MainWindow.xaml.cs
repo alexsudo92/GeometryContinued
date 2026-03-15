@@ -122,7 +122,6 @@ namespace Geometry.OctreeUI
 
         private void CollectNodes(OctreeNode node, Dictionary<float, List<Vector3>> sizeGroups)
         {
-
             if (node.IsLeaf && node.IsSolid)
             {
                 var size = node.Bounds.Size;

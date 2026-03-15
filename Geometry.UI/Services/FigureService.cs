@@ -1,10 +1,9 @@
 ﻿using DynamicData;
-using Geometry.Base;
 using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
-using System.Linq;
 using System.Numerics;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,24 +11,22 @@ namespace Geometry.UI.Services
 {
     public class FigureService
     {
-        private readonly SourceList<Outline> _lines;
-        public IObservable<IChangeSet<Outline>> Lines => _lines.Connect();
+        private readonly SourceList<Line> _lines;
+        public IObservable<IChangeSet<Line>> Lines => _lines.Connect();
 
-        private readonly SourceList<RenderFigure> _figures;
-        public IObservable<IChangeSet<RenderFigure>> Figures => _figures.Connect();
+        private readonly SourceList<FigureModel> _figures;
+        public IObservable<IChangeSet<FigureModel>> Figures => _figures.Connect();
 
         public FigureService()
         {
-            _figures = new SourceList<RenderFigure>();
-            _lines = new SourceList<Outline>();
+            _figures = new SourceList<FigureModel>();
+            _lines = new SourceList<Line>();
         }
 
-        public void AddFigure(FigureYaml figureYaml)
+        public void AddFigure(FigureModel figureModel)
         {
-            ArgumentNullException.ThrowIfNull(figureYaml, nameof(figureYaml));
-
-            var renderFigure = new RenderFigure() { Id = _figures.Count + 1, Name = figureYaml.Name, Figure = figureYaml.AsFigure(), History = [] };
-            _figures.Add(renderFigure);
+            figureModel.Id = _figures.Count + 1;
+            _figures.Add(figureModel);
 
             RenderAllFigures();
         }
@@ -53,16 +50,11 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 if (scale != 0f && scale != 1f)
                 {
                     var m = Affine.GetScaleMatrix(scale);
-
-                    if (scale > 1f)
-                        AddToHistory(_figures.Items[id], m, TransformType.ScaleUp);
-                    if (scale > 0f && scale < 1f)
-                        AddToHistory(_figures.Items[id], m, TransformType.ScaleDown);
 
                     figure.TransformAllVertices(m);
 
@@ -76,12 +68,11 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 if (angle != 0f)
                 {
                     var m = Affine.GetRotationMatrix(angle, axis);
-                    AddToHistory(_figures.Items[id], m, TransformType.Rotation);
                     figure.TransformAllVertices(m);
 
                     if (shouldRender)
@@ -94,10 +85,9 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 var m = Affine.GetTranslationMatrix(vector);
-                AddToHistory(_figures.Items[id], m, TransformType.Translation);
                 figure.TransformAllVertices(m);
 
                 if (shouldRender)
@@ -109,42 +99,22 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 var distance = direction.Length();
                 var stepVector = Vector2.Normalize(direction);
+                var stepVectorLength = stepVector.Length();
+                var stepVector3 = stepVector.AsVector3();
 
-                for (var i = 0f; i < distance; i += stepVector.Length())
+                for (var i = 0f; i < distance; i += stepVectorLength)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var translationMatrix = Affine.GetTranslationMatrix(stepVector.AsVector3());
+                    var translationMatrix = Affine.GetTranslationMatrix(stepVector3);
                     figure.TransformAllVertices(translationMatrix);
 
-                    var collision = false;
-                    foreach (var otherItem in _figures.Items)
-                    {
-                        if (otherItem != _figures.Items[id])
-                        {
-                            var size = Vector4.Distance(figure.Vertices[0].Vector4, figure.Vertices[1].Vector4) / 2f;
-                            var ray = figure.RayCast(otherItem.Figure, direction, size);
-
-                            if (ray)
-                            {
-                                collision = ray;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (collision)
-                    {
-                        break;
-                    }
-
-                    if (shouldRender)
-                        RenderAllFigures();
+                    RenderAllFigures();
 
                     await Task.Delay(1);
                 }
@@ -155,12 +125,11 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 if (yx != 0f || xy != 0f)
                 {
                     var m = Affine.GetShearMatrix(yx: yx, xy: xy);
-                    AddToHistory(_figures.Items[id], m, TransformType.Shear);
                     figure.TransformAllVertices(m);
 
                     if (shouldRender)
@@ -173,36 +142,12 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 if (p != 0f)
                 {
-                    ReverseProjectFigureToX(id, false);
-
                     var m = Perspective.ToX(1f / p);
-                    AddToHistory(_figures.Items[id], m, TransformType.Perspective);
                     figure.TransformAllVertices(m);
-
-                    if (shouldRender)
-                        RenderAllFigures();
-                }
-            }
-        }
-
-        public void ReverseProjectFigureToX(int id, bool shouldRender = true)
-        {
-            if (_figures.Items[id] is not null)
-            {
-                var figure = _figures.Items[id].Figure;
-                var history = _figures.Items[id].History;
-
-                var last = history.FirstOrDefault(x => x.TransformType == TransformType.Perspective);
-
-                if (last != null)
-                {
-                    var iM = last.Invert();
-                    figure.TransformAllVertices(iM);
-                    history.Remove(last);
 
                     if (shouldRender)
                         RenderAllFigures();
@@ -214,7 +159,7 @@ namespace Geometry.UI.Services
         {
             if (_figures.Items[id] is not null)
             {
-                var figure = _figures.Items[id].Figure;
+                var figure = _figures.Items[id];
 
                 if ((areaX1 != 0f && areaY1 != 0f) || (areaX2 != 0f && areaY2 != 0f))
                 {
@@ -241,11 +186,6 @@ namespace Geometry.UI.Services
             }
         }
 
-        private void AddToHistory(RenderFigure figure, Matrix4x4 m, TransformType transformType)
-        {
-            figure.History.Add(new Transform { TransformType = transformType, Matrix4X4 = m });
-        }
-
         private void RenderAllFigures()
         {
             _lines.Edit(list =>
@@ -254,21 +194,72 @@ namespace Geometry.UI.Services
 
                 foreach (var fw in _figures.Items)
                 {
-                    foreach (var e in fw.Figure.Edges)
+                    var cameraDirection = new Vector4(0, 0, -1, 1);
+
+                    foreach (var face in fw.Faces)
                     {
-                        var startIdx = e[0];
-                        var endIdx = e[1];
+                        var v1 = fw.Vertices[face[0]];
+                        var v2 = fw.Vertices[face[1]];
+                        var v3 = fw.Vertices[face[2]];
 
-                        var startVertex = fw.Figure.Vertices[startIdx];
-                        var endVertex = fw.Figure.Vertices[endIdx];
+                        var a = v2 - v1;
+                        var b = v3 - v1;
 
-                        list.Add(new Outline
+                        var normal = Vector4.Cross(a, b);
+
+                        if (Vector4.Dot(normal, cameraDirection) > 0)
                         {
-                            X1 = startVertex.Vector4.X,
-                            Y1 = -startVertex.Vector4.Y,
-                            X2 = endVertex.Vector4.X,
-                            Y2 = -endVertex.Vector4.Y,
-                        });
+                            var linesToAdd = new List<Line>
+                            {
+                                new Line
+                                {
+                                    X1 = v1.X,
+                                    Y1 = -v1.Y,
+                                    X2 = v2.X,
+                                    Y2 = -v2.Y
+                                },
+                                new Line
+                                {
+                                    X1 = v2.X,
+                                    Y1 = -v2.Y,
+                                    X2 = v3.X,
+                                    Y2 = -v3.Y
+                                }
+                            };
+
+                            // Для четырехугольников добавляем третью и четвертую стороны
+                            if (face.Count >= 4)
+                            {
+                                var v4 = fw.Vertices[face[3]];
+
+                                linesToAdd.Add(new Line
+                                {
+                                    X1 = v3.X,
+                                    Y1 = -v3.Y,
+                                    X2 = v4.X,
+                                    Y2 = -v4.Y
+                                });
+                                linesToAdd.Add(new Line
+                                {
+                                    X1 = v4.X,
+                                    Y1 = -v4.Y,
+                                    X2 = v1.X,
+                                    Y2 = -v1.Y
+                                });
+                            }
+                            else // Для треугольников замыкаем грань
+                            {
+                                linesToAdd.Add(new Line
+                                {
+                                    X1 = v3.X,
+                                    Y1 = -v3.Y,
+                                    X2 = v1.X,
+                                    Y2 = -v1.Y
+                                });
+                            }
+
+                            list.AddRange(linesToAdd);
+                        }
                     }
                 }
             });

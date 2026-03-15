@@ -35,6 +35,14 @@ namespace Geometry.UI.ViewModels
         private float _animationX;
         private float _animationY;
         private float _animationZ;
+        private Visibility _isAreaVisible = Visibility.Hidden;
+
+        private readonly ReadOnlyObservableCollection<Line> _lines;
+        private readonly ReadOnlyObservableCollection<FigureModel> _figures;
+        private readonly ReadOnlyObservableCollection<FigureModel> _availableFigures;
+        private FigureModel _selectedFigure;
+        private FigureModel _selectedAvailableFigure;
+        private bool _isAvailable;
 
         public float Scale
         {
@@ -111,7 +119,6 @@ namespace Geometry.UI.ViewModels
             get => _areaHeight;
             set => this.RaiseAndSetIfChanged(ref _areaHeight, value);
         }
-
         public float AnimationX
         {
             get => _animationX;
@@ -139,37 +146,27 @@ namespace Geometry.UI.ViewModels
         public ReactiveCommand<Unit, Unit> StartAnimationCommand { get; set; }
         public ReactiveCommand<Unit, Unit> StopAnimationCommand { get; set; }
 
-        private readonly ReadOnlyObservableCollection<FigureYaml> _figuresYaml;
-        public ReadOnlyObservableCollection<FigureYaml> FiguresYaml => _figuresYaml;
+        public ReadOnlyObservableCollection<FigureModel> AvaiableFigures => _availableFigures;
+        public ReadOnlyObservableCollection<FigureModel> Figures => _figures;
+        public ReadOnlyObservableCollection<Line> Lines => _lines;
 
-        private readonly ReadOnlyObservableCollection<Outline> _lines;
-        public ReadOnlyObservableCollection<Outline> Lines => _lines;
-
-        private FigureYaml _selectedYamlFigure;
-        public FigureYaml SelectedYamlFigure
-        {
-            get => _selectedYamlFigure;
-            set => this.RaiseAndSetIfChanged(ref _selectedYamlFigure, value);
-        }
-
-        private readonly ReadOnlyObservableCollection<RenderFigure> _figures;
-        public ReadOnlyObservableCollection<RenderFigure> Figures => _figures;
-
-        private RenderFigure _selectedFigure;
-        public RenderFigure SelectedFigure
+        public FigureModel SelectedFigure
         {
             get => _selectedFigure;
             set => this.RaiseAndSetIfChanged(ref _selectedFigure, value);
         }
+        public FigureModel SelectedAvailableFigure
+        {
+            get => _selectedAvailableFigure;
+            set => this.RaiseAndSetIfChanged(ref _selectedAvailableFigure, value);
+        }
 
-        private bool _isAvailable;
         public bool IsAvailable
         {
             get => _isAvailable;
             set => this.RaiseAndSetIfChanged(ref _isAvailable, value);
         }
 
-        private Visibility _isAreaVisible = Visibility.Hidden;
         public Visibility IsAreaVisible
         {
             get => _isAreaVisible;
@@ -177,17 +174,17 @@ namespace Geometry.UI.ViewModels
         }
 
         private readonly FigureService _figureService;
-        private readonly YamlService _yamlService;
+        private readonly FigureLoaderService _loaderService;
 
-        public MainViewModel(YamlService yamlService, FigureService figureService)
+        public MainViewModel(FigureLoaderService yamlService, FigureService figureService)
         {
-            _yamlService = yamlService;
+            _loaderService = yamlService;
             _figureService = figureService;
 
-            _yamlService.Figures
+            _loaderService.Figures
                 .SortBy(x => x.Id)
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Bind(out _figuresYaml)
+                .Bind(out _availableFigures)
                 .Subscribe();
 
             _figureService.Lines
@@ -205,7 +202,6 @@ namespace Geometry.UI.ViewModels
                  });
 
             this.WhenAnyValue(x => x.Scale)
-                .Throttle(TimeSpan.FromMilliseconds(200))
                 .Subscribe(x => Scale = x);
 
             this.WhenAnyValue(x => x.XAngle)
@@ -256,8 +252,8 @@ namespace Geometry.UI.ViewModels
 
             AddFigureCommand = ReactiveCommand.Create(() =>
             {
-                if (_selectedYamlFigure is not null)
-                    _figureService.AddFigure(_selectedYamlFigure);
+                if (_selectedAvailableFigure is not null)
+                    _figureService.AddFigure(_selectedAvailableFigure.Clone());
             });
 
             RemoveFigureCommand = ReactiveCommand.Create(() =>
@@ -320,7 +316,7 @@ namespace Geometry.UI.ViewModels
             {
                 if (_selectedFigure is not null)
                 {
-                    _source.Cancel();
+                    _source?.Cancel();
                 }
             }, StartAnimationCommand.IsExecuting);
         }
