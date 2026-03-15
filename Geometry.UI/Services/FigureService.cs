@@ -3,9 +3,9 @@ using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
 using System.Numerics;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace Geometry.UI.Services
 {
@@ -46,7 +46,7 @@ namespace Geometry.UI.Services
             RenderAllFigures();
         }
 
-        public void ScaleFigure(int id, float scale, bool shouldRender = true)
+        public void ScaleFigure(int id, float scale)
         {
             if (_figures.Items[id] is not null)
             {
@@ -58,13 +58,12 @@ namespace Geometry.UI.Services
 
                     figure.TransformAllVertices(m);
 
-                    if (shouldRender)
-                        RenderAllFigures();
+                    RenderAllFigures();
                 }
             }
         }
 
-        public void RotateFigure(int id, float angle, Vector4 axis, bool shouldRender = true)
+        public void RotateFigure(int id, float angle, Vector4 axis)
         {
             if (_figures.Items[id] is not null)
             {
@@ -75,13 +74,12 @@ namespace Geometry.UI.Services
                     var m = Affine.GetRotationMatrix(angle, axis);
                     figure.TransformAllVertices(m);
 
-                    if (shouldRender)
-                        RenderAllFigures();
+                    RenderAllFigures();
                 }
             }
         }
 
-        public void TranslateFigure(int id, Vector3 vector, bool shouldRender = true)
+        public void TranslateFigure(int id, Vector3 vector)
         {
             if (_figures.Items[id] is not null)
             {
@@ -90,12 +88,11 @@ namespace Geometry.UI.Services
                 var m = Affine.GetTranslationMatrix(vector);
                 figure.TransformAllVertices(m);
 
-                if (shouldRender)
-                    RenderAllFigures();
+                RenderAllFigures();
             }
         }
 
-        public async Task SmoothTranslateFigure(int id, Vector2 direction, CancellationToken cancellationToken, bool shouldRender = true)
+        public async Task SmoothTranslateFigure(int id, Vector2 direction, CancellationToken cancellationToken)
         {
             if (_figures.Items[id] is not null)
             {
@@ -116,12 +113,12 @@ namespace Geometry.UI.Services
 
                     RenderAllFigures();
 
-                    await Task.Delay(1);
+                    await Task.Delay(5, cancellationToken);
                 }
             }
         }
 
-        public void ShearFigure(int id, float yx = 0f, float xy = 0f, bool shouldRender = true)
+        public void ShearFigure(int id, float yx = 0f, float xy = 0f)
         {
             if (_figures.Items[id] is not null)
             {
@@ -132,13 +129,12 @@ namespace Geometry.UI.Services
                     var m = Affine.GetShearMatrix(yx: yx, xy: xy);
                     figure.TransformAllVertices(m);
 
-                    if (shouldRender)
-                        RenderAllFigures();
+                    RenderAllFigures();
                 }
             }
         }
 
-        public void ProjectFigureToX(int id, float p, bool shouldRender = true)
+        public void ProjectFigureToX(int id, float p)
         {
             if (_figures.Items[id] is not null)
             {
@@ -149,13 +145,12 @@ namespace Geometry.UI.Services
                     var m = Perspective.ToX(1f / p);
                     figure.TransformAllVertices(m);
 
-                    if (shouldRender)
-                        RenderAllFigures();
+                    RenderAllFigures();
                 }
             }
         }
 
-        public void MoveToAndScale(int id, float areaX1, float areaY1, float areaX2, float areaY2, bool shouldRender = true)
+        public void MoveToAndScale(int id, float areaX1, float areaY1, float areaX2, float areaY2)
         {
             if (_figures.Items[id] is not null)
             {
@@ -172,7 +167,7 @@ namespace Geometry.UI.Services
                     var tY = (areaY2 + areaY1) / 2f - midY;
 
                     var vector = new Vector3(tX, tY, 0f);
-                    TranslateFigure(id, vector, false);
+                    TranslateFigure(id, vector);
 
                     var areaWidth = areaX2 - areaX1;
                     var areaHeight = areaY2 - areaY1;
@@ -181,8 +176,19 @@ namespace Geometry.UI.Services
                     var fHeight = MaxY - MinY;
 
                     var k = MathF.Min(areaWidth / fWidth, areaHeight / fHeight);
-                    ScaleFigure(id, k, true);
+                    ScaleFigure(id, k);
                 }
+            }
+        }
+
+        public void ChangeFigureColor(int id, Color color)
+        {
+            if (_figures.Items[id] is not null)
+            {
+                var figure = _figures.Items[id];
+                figure.Color = color;
+
+                RenderAllFigures();
             }
         }
 
@@ -191,10 +197,11 @@ namespace Geometry.UI.Services
             _lines.Edit(list =>
             {
                 list.Clear();
+                var cameraDirection = new Vector4(0, 0, -1, 1);
 
                 foreach (var fw in _figures.Items)
                 {
-                    var cameraDirection = new Vector4(0, 0, -1, 1);
+                    var figureColor = fw.Color;
 
                     foreach (var face in fw.Faces)
                     {
@@ -209,56 +216,55 @@ namespace Geometry.UI.Services
 
                         if (Vector4.Dot(normal, cameraDirection) > 0)
                         {
-                            var linesToAdd = new List<Line>
-                            {
-                                new Line
-                                {
+                            list.AddRange([
+                                new() {
                                     X1 = v1.X,
                                     Y1 = -v1.Y,
                                     X2 = v2.X,
-                                    Y2 = -v2.Y
+                                    Y2 = -v2.Y,
+                                    Color = figureColor
                                 },
-                                new Line
-                                {
+                                new() {
                                     X1 = v2.X,
                                     Y1 = -v2.Y,
                                     X2 = v3.X,
-                                    Y2 = -v3.Y
-                                }
-                            };
+                                    Y2 = -v3.Y,
+                                    Color = figureColor
+                            }]);
 
-                            // Для четырехугольников добавляем третью и четвертую стороны
                             if (face.Count >= 4)
                             {
                                 var v4 = fw.Vertices[face[3]];
 
-                                linesToAdd.Add(new Line
-                                {
-                                    X1 = v3.X,
-                                    Y1 = -v3.Y,
-                                    X2 = v4.X,
-                                    Y2 = -v4.Y
-                                });
-                                linesToAdd.Add(new Line
-                                {
-                                    X1 = v4.X,
-                                    Y1 = -v4.Y,
-                                    X2 = v1.X,
-                                    Y2 = -v1.Y
-                                });
+                                list.AddRange([
+                                    new()
+                                    {
+                                        X1 = v3.X,
+                                        Y1 = -v3.Y,
+                                        X2 = v4.X,
+                                        Y2 = -v4.Y,
+                                        Color = figureColor
+                                    },
+                                    new()
+                                    {
+                                        X1 = v4.X,
+                                        Y1 = -v4.Y,
+                                        X2 = v1.X,
+                                        Y2 = -v1.Y,
+                                        Color = figureColor
+                                    }]);
                             }
-                            else // Для треугольников замыкаем грань
+                            else
                             {
-                                linesToAdd.Add(new Line
+                                list.Add(new()
                                 {
                                     X1 = v3.X,
                                     Y1 = -v3.Y,
                                     X2 = v1.X,
-                                    Y2 = -v1.Y
+                                    Y2 = -v1.Y,
+                                    Color = figureColor
                                 });
                             }
-
-                            list.AddRange(linesToAdd);
                         }
                     }
                 }

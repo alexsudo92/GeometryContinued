@@ -9,6 +9,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Geometry.UI.ViewModels
 {
@@ -36,6 +37,10 @@ namespace Geometry.UI.ViewModels
         private float _animationY;
         private float _animationZ;
         private Visibility _isAreaVisible = Visibility.Hidden;
+        private byte _colorR = 0;
+        private byte _colorG = 0;
+        private byte _colorB = 0;
+        private byte _colorA = 255;
 
         private readonly ReadOnlyObservableCollection<Line> _lines;
         private readonly ReadOnlyObservableCollection<FigureModel> _figures;
@@ -145,6 +150,7 @@ namespace Geometry.UI.ViewModels
         public ReactiveCommand<Unit, Unit> MoveToAreaCommand { get; set; }
         public ReactiveCommand<Unit, Unit> StartAnimationCommand { get; set; }
         public ReactiveCommand<Unit, Unit> StopAnimationCommand { get; set; }
+        public ReactiveCommand<Unit, Unit> ChangeColorCommand { get; set; }
 
         public ReadOnlyObservableCollection<FigureModel> AvaiableFigures => _availableFigures;
         public ReadOnlyObservableCollection<FigureModel> Figures => _figures;
@@ -171,6 +177,42 @@ namespace Geometry.UI.ViewModels
         {
             get => _isAreaVisible;
             set => this.RaiseAndSetIfChanged(ref _isAreaVisible, value);
+        }
+
+        public byte ColorR
+        {
+            get => _colorR;
+            set => this.RaiseAndSetIfChanged(ref _colorR, value);
+        }
+
+        public byte ColorG
+        {
+            get => _colorG;
+            set => this.RaiseAndSetIfChanged(ref _colorG, value);
+        }
+
+        public byte ColorB
+        {
+            get => _colorB;
+            set => this.RaiseAndSetIfChanged(ref _colorB, value);
+        }
+
+        public byte ColorA
+        {
+            get => _colorA;
+            set => this.RaiseAndSetIfChanged(ref _colorA, value);
+        }
+
+        public Color SelectedColor
+        {
+            get => Color.FromArgb(_colorA, _colorR, _colorG, _colorB);
+            set
+            {
+                ColorR = value.R;
+                ColorG = value.G;
+                ColorB = value.B;
+                ColorA = value.A;
+            }
         }
 
         private readonly FigureService _figureService;
@@ -319,6 +361,12 @@ namespace Geometry.UI.ViewModels
                     _source?.Cancel();
                 }
             }, StartAnimationCommand.IsExecuting);
+
+            ChangeColorCommand = ReactiveCommand.Create(() =>
+            {
+                if (_selectedFigure is not null)
+                    _figureService.ChangeFigureColor(_figures.IndexOf(_selectedFigure), SelectedColor);
+            });
         }
 
         private CancellationTokenSource _source;
@@ -333,6 +381,7 @@ namespace Geometry.UI.ViewModels
             TranslateY = 0f;
             TranslateZ = 0f;
             Shear = 0f;
+            SelectedColor = Colors.Black;
         }
     }
 }
