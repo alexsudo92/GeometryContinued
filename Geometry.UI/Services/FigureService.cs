@@ -212,7 +212,6 @@ namespace Geometry.UI.Services
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
             var polygonCandidates = new List<PolygonCandidate>();
-            var lines = new List<Line>();
 
             foreach (var fw in _figures.Items)
             {
@@ -243,6 +242,7 @@ namespace Geometry.UI.Services
 
                     var points = new PointCollection();
                     var projectedVertices = new List<ProjectedVertex>(faceVertices.Count);
+                    var candidateLines = new List<Line>(faceVertices.Count);
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
@@ -251,7 +251,7 @@ namespace Geometry.UI.Services
                         projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
 
                         var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
-                        lines.Add(new Line
+                        candidateLines.Add(new Line
                         {
                             X1 = vertex.X,
                             Y1 = -vertex.Y,
@@ -269,37 +269,40 @@ namespace Geometry.UI.Services
                             FillColor = faceColor,
                             Depth = float.NegativeInfinity
                         },
-                        Vertices = projectedVertices
+                        Vertices = projectedVertices,
+                        Lines = candidateLines
                     });
                 }
             }
 
-            var polygons = ApplyZBuffer(polygonCandidates);
+            var renderResult = ApplyZBuffer(polygonCandidates);
 
             _polygons.Edit(list =>
             {
                 list.Clear();
-                list.AddRange(polygons);
+                list.AddRange(renderResult.Polygons);
             });
 
             _lines.Edit(list =>
             {
                 list.Clear();
-                list.AddRange(lines);
+                list.AddRange(renderResult.Lines);
             });
         }
 
-        private static IReadOnlyList<FacePolygon> ApplyZBuffer(IReadOnlyList<PolygonCandidate> candidates)
+        private static RenderResult ApplyZBuffer(IReadOnlyList<PolygonCandidate> candidates)
         {
             if (candidates.Count == 0)
             {
-                return [];
+                return RenderResult.Empty;
             }
 
             var bounds = GetSceneBounds(candidates);
             if (bounds.maxX < bounds.minX || bounds.maxY < bounds.minY)
             {
-                return candidates.Select(candidate => candidate.Polygon).ToList();
+                return new RenderResult(
+                    candidates.Select(candidate => candidate.Polygon).ToList(),
+                    candidates.SelectMany(candidate => candidate.Lines).ToList());
             }
 
             var width = bounds.maxX - bounds.minX + 1;
@@ -342,10 +345,14 @@ namespace Geometry.UI.Services
                 }
             }
 
-            return visiblePolygons
-                .Select(index => candidates[index].Polygon)
-                .OrderBy(polygon => polygon.Depth)
+            var orderedVisibleCandidates = visiblePolygons
+                .Select(index => candidates[index])
+                .OrderBy(candidate => candidate.Polygon.Depth)
                 .ToList();
+
+            return new RenderResult(
+                orderedVisibleCandidates.Select(candidate => candidate.Polygon).ToList(),
+                orderedVisibleCandidates.SelectMany(candidate => candidate.Lines).ToList());
         }
 
         private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(IReadOnlyList<PolygonCandidate> candidates)
@@ -420,6 +427,12 @@ namespace Geometry.UI.Services
         {
             public required FacePolygon Polygon { get; init; }
             public required List<ProjectedVertex> Vertices { get; init; }
+            public required List<Line> Lines { get; init; }
+        }
+
+        private sealed record RenderResult(IReadOnlyList<FacePolygon> Polygons, IReadOnlyList<Line> Lines)
+        {
+            public static RenderResult Empty { get; } = new([], []);
         }
 
         private readonly record struct ProjectedVertex(float X, float Y, float Z);
