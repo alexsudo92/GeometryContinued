@@ -1,10 +1,11 @@
-﻿using System.Numerics;
+using System.Numerics;
+
 namespace Geometry.Base
 {
     public class Figure
     {
-        public List<Vector4> Vertices { get; set; }
-        public List<List<int>> Faces { get; set; }
+        public List<Vector4> Vertices { get; set; } = [];
+        public List<Face> Faces { get; set; } = [];
 
         public void TransformAllVertices(Matrix4x4 matrix)
         {
