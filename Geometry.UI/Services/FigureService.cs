@@ -14,8 +14,8 @@ namespace Geometry.UI.Services
 {
     public class FigureService
     {
-        private readonly SourceList<FacePolygon> _polygons;
-        public IObservable<IChangeSet<FacePolygon>> Polygons => _polygons.Connect();
+        private readonly SourceList<PolygonModel> _polygons;
+        public IObservable<IChangeSet<PolygonModel>> Polygons => _polygons.Connect();
 
         private readonly SourceList<FigureModel> _figures;
         public IObservable<IChangeSet<FigureModel>> Figures => _figures.Connect();
@@ -23,7 +23,7 @@ namespace Geometry.UI.Services
         public FigureService()
         {
             _figures = new SourceList<FigureModel>();
-            _polygons = new SourceList<FacePolygon>();
+            _polygons = new SourceList<PolygonModel>();
         }
 
         public void AddFigure(FigureModel figureModel)
@@ -186,7 +186,7 @@ namespace Geometry.UI.Services
         private void RenderAllFigures()
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygonCandidates = new List<(FacePolygon Polygon, List<Vector3> Vertices)>();
+            var polygonCandidates = new List<(PolygonModel Polygon, List<Vector3> Vertices)>();
 
             foreach (var fw in _figures.Items)
             {
@@ -206,7 +206,7 @@ namespace Geometry.UI.Services
                     }
 
                     polygonCandidates.Add((
-                        new FacePolygon
+                        new PolygonModel
                         {
                             Points = points,
                             FillColor = faceColor,
@@ -225,7 +225,7 @@ namespace Geometry.UI.Services
             });
         }
 
-        private static List<FacePolygon> ApplyZBuffer(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
+        private static List<PolygonModel> ApplyZBuffer(List<(PolygonModel Polygon, List<Vector3> Vertices)> candidates)
         {
             if (candidates.Count == 0)
             {
@@ -283,7 +283,7 @@ namespace Geometry.UI.Services
                 .OrderBy(polygon => polygon.Depth)];
         }
 
-        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
+        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<(PolygonModel Polygon, List<Vector3> Vertices)> candidates)
         {
             var minX = int.MaxValue;
             var minY = int.MaxValue;

@@ -37,7 +37,7 @@ namespace Geometry.UI.ViewModels
         private float _animationZ;
         private Visibility _isAreaVisible = Visibility.Hidden;
 
-        private readonly ReadOnlyObservableCollection<FacePolygon> _polygons;
+        private readonly ReadOnlyObservableCollection<PolygonModel> _polygons;
         private readonly ReadOnlyObservableCollection<FigureModel> _figures;
         private readonly ReadOnlyObservableCollection<FigureModel> _availableFigures;
         private FigureModel _selectedFigure;
@@ -148,7 +148,7 @@ namespace Geometry.UI.ViewModels
 
         public ReadOnlyObservableCollection<FigureModel> AvaiableFigures => _availableFigures;
         public ReadOnlyObservableCollection<FigureModel> Figures => _figures;
-        public ReadOnlyObservableCollection<FacePolygon> Polygons => _polygons;
+        public ReadOnlyObservableCollection<PolygonModel> Polygons => _polygons;
 
         public FigureModel SelectedFigure
         {
