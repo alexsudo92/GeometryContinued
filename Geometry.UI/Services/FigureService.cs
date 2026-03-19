@@ -187,7 +187,7 @@ namespace Geometry.UI.Services
         private void RenderAllFigures()
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygonCandidates = new List<PolygonCandidate>();
+            var polygonCandidates = new List<(FacePolygon Polygon, List<Vector3> Vertices)>();
 
             foreach (var fw in _figures.Items)
             {
@@ -217,27 +217,24 @@ namespace Geometry.UI.Services
                     }
 
                     var points = new PointCollection();
-                    var projectedVertices = new List<ProjectedVertex>(faceVertices.Count);
+                    var projectedVertices = new List<Vector3>(faceVertices.Count);
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
                         var vertex = fw.Vertices[faceVertices[i]];
                         points.Add(new Point(vertex.X, -vertex.Y));
-                        projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
+                        projectedVertices.Add(new Vector3(vertex.X, -vertex.Y, vertex.Z));
 
-                        var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
                     }
 
-                    polygonCandidates.Add(new PolygonCandidate
-                    {
-                        Polygon = new FacePolygon
+                    polygonCandidates.Add((
+                        new FacePolygon
                         {
                             Points = points,
                             FillColor = faceColor,
                             Depth = float.NegativeInfinity
                         },
-                        Vertices = projectedVertices
-                    });
+                        projectedVertices));
                 }
             }
 
@@ -250,7 +247,7 @@ namespace Geometry.UI.Services
             });
         }
 
-        private static List<FacePolygon> ApplyZBuffer(List<PolygonCandidate> candidates)
+        private static List<FacePolygon> ApplyZBuffer(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
         {
             if (candidates.Count == 0)
             {
@@ -308,7 +305,7 @@ namespace Geometry.UI.Services
                 .OrderBy(polygon => polygon.Depth)];
         }
 
-        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<PolygonCandidate> candidates)
+        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
         {
             var minX = int.MaxValue;
             var minY = int.MaxValue;
@@ -329,7 +326,7 @@ namespace Geometry.UI.Services
             return (minX, minY, maxX, maxY);
         }
 
-        private static void RasterizeTriangle(ProjectedVertex v1, ProjectedVertex v2, ProjectedVertex v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
+        private static void RasterizeTriangle(Vector3 v1, Vector3 v2, Vector3 v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
         {
             var minX = Math.Max((int)MathF.Floor(MathF.Min(v1.X, MathF.Min(v2.X, v3.X))), offsetX);
             var maxX = Math.Min((int)MathF.Ceiling(MathF.Max(v1.X, MathF.Max(v2.X, v3.X))), offsetX + depthBuffer.GetLength(0) - 1);
@@ -376,12 +373,5 @@ namespace Geometry.UI.Services
         private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py) =>
             (px - ax) * (by - ay) - (py - ay) * (bx - ax);
 
-        private sealed class PolygonCandidate
-        {
-            public required FacePolygon Polygon { get; init; }
-            public required List<ProjectedVertex> Vertices { get; init; }
-        }
-
-        private readonly record struct ProjectedVertex(float X, float Y, float Z);
     }
 }
