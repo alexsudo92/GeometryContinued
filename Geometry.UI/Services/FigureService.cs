@@ -95,23 +95,22 @@ namespace Geometry.UI.Services
             }
         }
 
-        public async Task SmoothTranslateFigure(int id, Vector2 direction, CancellationToken cancellationToken)
+        public async Task SmoothTranslateFigure(int id, Vector3 direction, CancellationToken cancellationToken)
         {
             if (_figures.Items[id] is not null)
             {
                 var figure = _figures.Items[id];
 
                 var distance = direction.Length();
-                var stepVector = Vector2.Normalize(direction);
+                var stepVector = Vector3.Normalize(direction);
                 var stepVectorLength = stepVector.Length();
-                var stepVector3 = stepVector.AsVector3();
 
                 for (var i = 0f; i < distance; i += stepVectorLength)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var translationMatrix = Affine.GetTranslationMatrix(stepVector3);
+                    var translationMatrix = Affine.GetTranslationMatrix(stepVector);
                     figure.TransformAllVertices(translationMatrix);
 
                     RenderAllFigures();
@@ -187,7 +186,7 @@ namespace Geometry.UI.Services
         private void RenderAllFigures()
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygonCandidates = new List<PolygonCandidate>();
+            var polygonCandidates = new List<(FacePolygon Polygon, List<Vector3> Vertices)>();
 
             foreach (var fw in _figures.Items)
             {
@@ -196,48 +195,24 @@ namespace Geometry.UI.Services
                     var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
                     var faceVertices = face.Vertices;
 
-                    if (faceVertices.Count < 3)
-                    {
-                        continue;
-                    }
-
-                    var v1 = fw.Vertices[faceVertices[0]];
-                    var v2 = fw.Vertices[faceVertices[1]];
-                    var v3 = fw.Vertices[faceVertices[2]];
-
-                    var a = v2 - v1;
-                    var b = v3 - v1;
-
-                    var normal = Vector4.Cross(a, b);
-                    var dot = Vector4.Dot(normal, cameraDirection);
-
-                    if (dot <= 0f)
-                    {
-                        continue;
-                    }
-
                     var points = new PointCollection();
-                    var projectedVertices = new List<ProjectedVertex>(faceVertices.Count);
+                    var projectedVertices = new List<Vector3>(faceVertices.Count);
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
                         var vertex = fw.Vertices[faceVertices[i]];
                         points.Add(new Point(vertex.X, -vertex.Y));
-                        projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
-
-                        var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
+                        projectedVertices.Add(new Vector3(vertex.X, -vertex.Y, vertex.Z));
                     }
 
-                    polygonCandidates.Add(new PolygonCandidate
-                    {
-                        Polygon = new FacePolygon
+                    polygonCandidates.Add((
+                        new FacePolygon
                         {
                             Points = points,
                             FillColor = faceColor,
                             Depth = float.NegativeInfinity
                         },
-                        Vertices = projectedVertices
-                    });
+                        projectedVertices));
                 }
             }
 
@@ -250,7 +225,7 @@ namespace Geometry.UI.Services
             });
         }
 
-        private static List<FacePolygon> ApplyZBuffer(List<PolygonCandidate> candidates)
+        private static List<FacePolygon> ApplyZBuffer(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
         {
             if (candidates.Count == 0)
             {
@@ -308,16 +283,16 @@ namespace Geometry.UI.Services
                 .OrderBy(polygon => polygon.Depth)];
         }
 
-        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<PolygonCandidate> candidates)
+        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<(FacePolygon Polygon, List<Vector3> Vertices)> candidates)
         {
             var minX = int.MaxValue;
             var minY = int.MaxValue;
             var maxX = int.MinValue;
             var maxY = int.MinValue;
 
-            foreach (var candidate in candidates)
+            foreach (var (Polygon, Vertices) in candidates)
             {
-                foreach (var vertex in candidate.Vertices)
+                foreach (var vertex in Vertices)
                 {
                     minX = Math.Min(minX, (int)MathF.Floor(vertex.X));
                     minY = Math.Min(minY, (int)MathF.Floor(vertex.Y));
@@ -329,7 +304,7 @@ namespace Geometry.UI.Services
             return (minX, minY, maxX, maxY);
         }
 
-        private static void RasterizeTriangle(ProjectedVertex v1, ProjectedVertex v2, ProjectedVertex v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
+        private static void RasterizeTriangle(Vector3 v1, Vector3 v2, Vector3 v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
         {
             var minX = Math.Max((int)MathF.Floor(MathF.Min(v1.X, MathF.Min(v2.X, v3.X))), offsetX);
             var maxX = Math.Min((int)MathF.Ceiling(MathF.Max(v1.X, MathF.Max(v2.X, v3.X))), offsetX + depthBuffer.GetLength(0) - 1);
@@ -376,12 +351,5 @@ namespace Geometry.UI.Services
         private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py) =>
             (px - ax) * (by - ay) - (py - ay) * (bx - ax);
 
-        private sealed class PolygonCandidate
-        {
-            public required FacePolygon Polygon { get; init; }
-            public required List<ProjectedVertex> Vertices { get; init; }
-        }
-
-        private readonly record struct ProjectedVertex(float X, float Y, float Z);
     }
 }
