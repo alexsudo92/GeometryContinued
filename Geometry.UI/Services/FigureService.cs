@@ -197,7 +197,7 @@ namespace Geometry.UI.Services
             _lines.Edit(list =>
             {
                 list.Clear();
-                var cameraDirection = new Vector4(0, 0, -1, 1);
+                var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
 
                 foreach (var fw in _figures.Items)
                 {
@@ -213,8 +213,9 @@ namespace Geometry.UI.Services
                         var b = v3 - v1;
 
                         var normal = Vector4.Cross(a, b);
+                        var dot = Vector4.Dot(normal, cameraDirection);
 
-                        if (Vector4.Dot(normal, cameraDirection) > 0)
+                        if (dot > 0f)
                         {
                             list.AddRange([
                                 new() {

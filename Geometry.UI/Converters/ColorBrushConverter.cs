@@ -9,18 +9,14 @@ namespace Geometry.UI.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            Color color;
-
-            if (value is Color c)
+            if (value is Color color)
             {
-                color = c;
+                return new SolidColorBrush(color);
             }
             else
             {
                 return new SolidColorBrush(Colors.Black);
             }
-
-            return new SolidColorBrush(color);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
