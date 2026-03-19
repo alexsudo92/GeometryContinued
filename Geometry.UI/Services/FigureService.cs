@@ -186,7 +186,10 @@ namespace Geometry.UI.Services
             if (_figures.Items[id] is not null)
             {
                 var figure = _figures.Items[id];
-                figure.Color = color;
+                foreach (var face in figure.Faces)
+                {
+                    face.Color = color;
+                }
 
                 RenderAllFigures();
             }
@@ -201,13 +204,13 @@ namespace Geometry.UI.Services
 
                 foreach (var fw in _figures.Items)
                 {
-                    var figureColor = fw.Color;
-
                     foreach (var face in fw.Faces)
                     {
-                        var v1 = fw.Vertices[face[0]];
-                        var v2 = fw.Vertices[face[1]];
-                        var v3 = fw.Vertices[face[2]];
+                        var faceColor = face.Color;
+
+                        var v1 = fw.Vertices[face.Vertices[0]];
+                        var v2 = fw.Vertices[face.Vertices[1]];
+                        var v3 = fw.Vertices[face.Vertices[2]];
 
                         var a = v2 - v1;
                         var b = v3 - v1;
@@ -223,19 +226,19 @@ namespace Geometry.UI.Services
                                     Y1 = -v1.Y,
                                     X2 = v2.X,
                                     Y2 = -v2.Y,
-                                    Color = figureColor
+                                    Color = faceColor
                                 },
                                 new() {
                                     X1 = v2.X,
                                     Y1 = -v2.Y,
                                     X2 = v3.X,
                                     Y2 = -v3.Y,
-                                    Color = figureColor
+                                    Color = faceColor
                             }]);
 
-                            if (face.Count >= 4)
+                            if (face.Vertices.Count >= 4)
                             {
-                                var v4 = fw.Vertices[face[3]];
+                                var v4 = fw.Vertices[face.Vertices[3]];
 
                                 list.AddRange([
                                     new()
@@ -244,7 +247,7 @@ namespace Geometry.UI.Services
                                         Y1 = -v3.Y,
                                         X2 = v4.X,
                                         Y2 = -v4.Y,
-                                        Color = figureColor
+                                        Color = faceColor
                                     },
                                     new()
                                     {
@@ -252,7 +255,7 @@ namespace Geometry.UI.Services
                                         Y1 = -v4.Y,
                                         X2 = v1.X,
                                         Y2 = -v1.Y,
-                                        Color = figureColor
+                                        Color = faceColor
                                     }]);
                             }
                             else
@@ -263,7 +266,7 @@ namespace Geometry.UI.Services
                                     Y1 = -v3.Y,
                                     X2 = v1.X,
                                     Y2 = -v1.Y,
-                                    Color = figureColor
+                                    Color = faceColor
                                 });
                             }
                         }
