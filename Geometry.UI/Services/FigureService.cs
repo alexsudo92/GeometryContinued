@@ -95,23 +95,22 @@ namespace Geometry.UI.Services
             }
         }
 
-        public async Task SmoothTranslateFigure(int id, Vector2 direction, CancellationToken cancellationToken)
+        public async Task SmoothTranslateFigure(int id, Vector3 direction, CancellationToken cancellationToken)
         {
             if (_figures.Items[id] is not null)
             {
                 var figure = _figures.Items[id];
 
                 var distance = direction.Length();
-                var stepVector = Vector2.Normalize(direction);
+                var stepVector = Vector3.Normalize(direction);
                 var stepVectorLength = stepVector.Length();
-                var stepVector3 = stepVector.AsVector3();
 
                 for (var i = 0f; i < distance; i += stepVectorLength)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var translationMatrix = Affine.GetTranslationMatrix(stepVector3);
+                    var translationMatrix = Affine.GetTranslationMatrix(stepVector);
                     figure.TransformAllVertices(translationMatrix);
 
                     RenderAllFigures();
@@ -196,26 +195,6 @@ namespace Geometry.UI.Services
                     var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
                     var faceVertices = face.Vertices;
 
-                    if (faceVertices.Count < 3)
-                    {
-                        continue;
-                    }
-
-                    var v1 = fw.Vertices[faceVertices[0]];
-                    var v2 = fw.Vertices[faceVertices[1]];
-                    var v3 = fw.Vertices[faceVertices[2]];
-
-                    var a = v2 - v1;
-                    var b = v3 - v1;
-
-                    var normal = Vector4.Cross(a, b);
-                    var dot = Vector4.Dot(normal, cameraDirection);
-
-                    if (dot <= 0f)
-                    {
-                        continue;
-                    }
-
                     var points = new PointCollection();
                     var projectedVertices = new List<Vector3>(faceVertices.Count);
 
@@ -224,7 +203,6 @@ namespace Geometry.UI.Services
                         var vertex = fw.Vertices[faceVertices[i]];
                         points.Add(new Point(vertex.X, -vertex.Y));
                         projectedVertices.Add(new Vector3(vertex.X, -vertex.Y, vertex.Z));
-
                     }
 
                     polygonCandidates.Add((
@@ -312,9 +290,9 @@ namespace Geometry.UI.Services
             var maxX = int.MinValue;
             var maxY = int.MinValue;
 
-            foreach (var candidate in candidates)
+            foreach (var (Polygon, Vertices) in candidates)
             {
-                foreach (var vertex in candidate.Vertices)
+                foreach (var vertex in Vertices)
                 {
                     minX = Math.Min(minX, (int)MathF.Floor(vertex.X));
                     minY = Math.Min(minY, (int)MathF.Floor(vertex.Y));

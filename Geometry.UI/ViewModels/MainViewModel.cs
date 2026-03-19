@@ -308,7 +308,7 @@ namespace Geometry.UI.ViewModels
                 if (_selectedFigure is not null)
                     await _figureService.SmoothTranslateFigure(
                         _figures.IndexOf(_selectedFigure),
-                        new Vector2(AnimationX, AnimationY),
+                        new Vector3(AnimationX, AnimationY, AnimationZ),
                         token);
             });
 
