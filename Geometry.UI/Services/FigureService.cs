@@ -2,6 +2,8 @@
 using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -209,7 +211,7 @@ namespace Geometry.UI.Services
         private void RenderAllFigures()
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygons = new List<FacePolygon>();
+            var polygonCandidates = new List<PolygonCandidate>();
             var lines = new List<Line>();
 
             foreach (var fw in _figures.Items)
@@ -240,12 +242,13 @@ namespace Geometry.UI.Services
                     }
 
                     var points = new PointCollection();
+                    var projectedVertices = new List<ProjectedVertex>(faceVertices.Count);
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
                         var vertex = fw.Vertices[faceVertices[i]];
-                        var point = new Point(vertex.X, -vertex.Y);
-                        points.Add(point);
+                        points.Add(new Point(vertex.X, -vertex.Y));
+                        projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
 
                         var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
                         lines.Add(new Line
@@ -258,13 +261,20 @@ namespace Geometry.UI.Services
                         });
                     }
 
-                    polygons.Add(new FacePolygon
+                    polygonCandidates.Add(new PolygonCandidate
                     {
-                        Points = points,
-                        FillColor = faceColor
+                        Polygon = new FacePolygon
+                        {
+                            Points = points,
+                            FillColor = faceColor,
+                            Depth = float.NegativeInfinity
+                        },
+                        Vertices = projectedVertices
                     });
                 }
             }
+
+            var polygons = ApplyZBuffer(polygonCandidates);
 
             _polygons.Edit(list =>
             {
@@ -278,5 +288,140 @@ namespace Geometry.UI.Services
                 list.AddRange(lines);
             });
         }
+
+        private static IReadOnlyList<FacePolygon> ApplyZBuffer(IReadOnlyList<PolygonCandidate> candidates)
+        {
+            if (candidates.Count == 0)
+            {
+                return [];
+            }
+
+            var bounds = GetSceneBounds(candidates);
+            if (bounds.maxX < bounds.minX || bounds.maxY < bounds.minY)
+            {
+                return candidates.Select(candidate => candidate.Polygon).ToList();
+            }
+
+            var width = bounds.maxX - bounds.minX + 1;
+            var height = bounds.maxY - bounds.minY + 1;
+            var depthBuffer = new float[width, height];
+            var ownerBuffer = new int[width, height];
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    depthBuffer[x, y] = float.NegativeInfinity;
+                    ownerBuffer[x, y] = -1;
+                }
+            }
+
+            for (var polygonIndex = 0; polygonIndex < candidates.Count; polygonIndex++)
+            {
+                var vertices = candidates[polygonIndex].Vertices;
+
+                for (var vertexIndex = 1; vertexIndex < vertices.Count - 1; vertexIndex++)
+                {
+                    RasterizeTriangle(vertices[0], vertices[vertexIndex], vertices[vertexIndex + 1], polygonIndex, bounds.minX, bounds.minY, depthBuffer, ownerBuffer);
+                }
+            }
+
+            var visiblePolygons = new HashSet<int>();
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    var owner = ownerBuffer[x, y];
+                    if (owner < 0)
+                    {
+                        continue;
+                    }
+
+                    visiblePolygons.Add(owner);
+                    candidates[owner].Polygon.Depth = MathF.Max(candidates[owner].Polygon.Depth, depthBuffer[x, y]);
+                }
+            }
+
+            return visiblePolygons
+                .Select(index => candidates[index].Polygon)
+                .OrderBy(polygon => polygon.Depth)
+                .ToList();
+        }
+
+        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(IReadOnlyList<PolygonCandidate> candidates)
+        {
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+
+            foreach (var candidate in candidates)
+            {
+                foreach (var vertex in candidate.Vertices)
+                {
+                    minX = Math.Min(minX, (int)MathF.Floor(vertex.X));
+                    minY = Math.Min(minY, (int)MathF.Floor(vertex.Y));
+                    maxX = Math.Max(maxX, (int)MathF.Ceiling(vertex.X));
+                    maxY = Math.Max(maxY, (int)MathF.Ceiling(vertex.Y));
+                }
+            }
+
+            return (minX, minY, maxX, maxY);
+        }
+
+        private static void RasterizeTriangle(ProjectedVertex v1, ProjectedVertex v2, ProjectedVertex v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
+        {
+            var minX = Math.Max((int)MathF.Floor(MathF.Min(v1.X, MathF.Min(v2.X, v3.X))), offsetX);
+            var maxX = Math.Min((int)MathF.Ceiling(MathF.Max(v1.X, MathF.Max(v2.X, v3.X))), offsetX + depthBuffer.GetLength(0) - 1);
+            var minY = Math.Max((int)MathF.Floor(MathF.Min(v1.Y, MathF.Min(v2.Y, v3.Y))), offsetY);
+            var maxY = Math.Min((int)MathF.Ceiling(MathF.Max(v1.Y, MathF.Max(v2.Y, v3.Y))), offsetY + depthBuffer.GetLength(1) - 1);
+            var denominator = EdgeFunction(v1.X, v1.Y, v2.X, v2.Y, v3.X, v3.Y);
+
+            if (MathF.Abs(denominator) < float.Epsilon)
+            {
+                return;
+            }
+
+            for (var x = minX; x <= maxX; x++)
+            {
+                for (var y = minY; y <= maxY; y++)
+                {
+                    var sampleX = x + 0.5f;
+                    var sampleY = y + 0.5f;
+
+                    var w0 = EdgeFunction(v2.X, v2.Y, v3.X, v3.Y, sampleX, sampleY) / denominator;
+                    var w1 = EdgeFunction(v3.X, v3.Y, v1.X, v1.Y, sampleX, sampleY) / denominator;
+                    var w2 = EdgeFunction(v1.X, v1.Y, v2.X, v2.Y, sampleX, sampleY) / denominator;
+
+                    if (w0 < 0f || w1 < 0f || w2 < 0f)
+                    {
+                        continue;
+                    }
+
+                    var depth = v1.Z * w0 + v2.Z * w1 + v3.Z * w2;
+                    var bufferX = x - offsetX;
+                    var bufferY = y - offsetY;
+
+                    if (depth <= depthBuffer[bufferX, bufferY])
+                    {
+                        continue;
+                    }
+
+                    depthBuffer[bufferX, bufferY] = depth;
+                    ownerBuffer[bufferX, bufferY] = polygonIndex;
+                }
+            }
+        }
+
+        private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py) =>
+            (px - ax) * (by - ay) - (py - ay) * (bx - ax);
+
+        private sealed class PolygonCandidate
+        {
+            public required FacePolygon Polygon { get; init; }
+            public required List<ProjectedVertex> Vertices { get; init; }
+        }
+
+        private readonly record struct ProjectedVertex(float X, float Y, float Z);
     }
 }
