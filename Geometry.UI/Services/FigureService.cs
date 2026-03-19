@@ -14,9 +14,6 @@ namespace Geometry.UI.Services
 {
     public class FigureService
     {
-        private readonly SourceList<Line> _lines;
-        public IObservable<IChangeSet<Line>> Lines => _lines.Connect();
-
         private readonly SourceList<FacePolygon> _polygons;
         public IObservable<IChangeSet<FacePolygon>> Polygons => _polygons.Connect();
 
@@ -26,7 +23,6 @@ namespace Geometry.UI.Services
         public FigureService()
         {
             _figures = new SourceList<FigureModel>();
-            _lines = new SourceList<Line>();
             _polygons = new SourceList<FacePolygon>();
         }
 
@@ -48,7 +44,6 @@ namespace Geometry.UI.Services
         public void ClearFigures()
         {
             _figures.Clear();
-            _lines.Clear();
             _polygons.Clear();
 
             RenderAllFigures();
@@ -212,7 +207,6 @@ namespace Geometry.UI.Services
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
             var polygonCandidates = new List<PolygonCandidate>();
-            var lines = new List<Line>();
 
             foreach (var fw in _figures.Items)
             {
@@ -251,14 +245,6 @@ namespace Geometry.UI.Services
                         projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
 
                         var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
-                        lines.Add(new Line
-                        {
-                            X1 = vertex.X,
-                            Y1 = -vertex.Y,
-                            X2 = nextVertex.X,
-                            Y2 = -nextVertex.Y,
-                            Color = Colors.Black
-                        });
                     }
 
                     polygonCandidates.Add(new PolygonCandidate
@@ -281,29 +267,23 @@ namespace Geometry.UI.Services
                 list.Clear();
                 list.AddRange(polygons);
             });
-
-            _lines.Edit(list =>
-            {
-                list.Clear();
-                list.AddRange(lines);
-            });
         }
 
-        private static IReadOnlyList<FacePolygon> ApplyZBuffer(IReadOnlyList<PolygonCandidate> candidates)
+        private static List<FacePolygon> ApplyZBuffer(List<PolygonCandidate> candidates)
         {
             if (candidates.Count == 0)
             {
                 return [];
             }
 
-            var bounds = GetSceneBounds(candidates);
-            if (bounds.maxX < bounds.minX || bounds.maxY < bounds.minY)
+            var (minX, minY, maxX, maxY) = GetSceneBounds(candidates);
+            if (maxX < minX || maxY < minY)
             {
-                return candidates.Select(candidate => candidate.Polygon).ToList();
+                return [.. candidates.Select(candidate => candidate.Polygon)];
             }
 
-            var width = bounds.maxX - bounds.minX + 1;
-            var height = bounds.maxY - bounds.minY + 1;
+            var width = maxX - minX + 1;
+            var height = maxY - minY + 1;
             var depthBuffer = new float[width, height];
             var ownerBuffer = new int[width, height];
 
@@ -322,7 +302,7 @@ namespace Geometry.UI.Services
 
                 for (var vertexIndex = 1; vertexIndex < vertices.Count - 1; vertexIndex++)
                 {
-                    RasterizeTriangle(vertices[0], vertices[vertexIndex], vertices[vertexIndex + 1], polygonIndex, bounds.minX, bounds.minY, depthBuffer, ownerBuffer);
+                    RasterizeTriangle(vertices[0], vertices[vertexIndex], vertices[vertexIndex + 1], polygonIndex, minX, minY, depthBuffer, ownerBuffer);
                 }
             }
 
@@ -342,10 +322,9 @@ namespace Geometry.UI.Services
                 }
             }
 
-            return visiblePolygons
+            return [.. visiblePolygons
                 .Select(index => candidates[index].Polygon)
-                .OrderBy(polygon => polygon.Depth)
-                .ToList();
+                .OrderBy(polygon => polygon.Depth)];
         }
 
         private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(IReadOnlyList<PolygonCandidate> candidates)
