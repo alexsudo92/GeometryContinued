@@ -55,32 +55,6 @@
                 <TextBlock FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center">Операции</TextBlock>
                 <Separator BorderThickness="6" BorderBrush="Black"></Separator>
 
-                <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Цвет">
-                    <StackPanel Margin="0,5,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Grid.Row="1">R:</TextBlock>
-                            <TextBox Margin="5,0,5,0" Grid.Row="1" Grid.Column="1" Text="{Binding ColorR}" Width="150"/>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Grid.Row="2">G:</TextBlock>
-                            <TextBox Margin="5,0,5,0" Grid.Row="2" Grid.Column="1" Text="{Binding ColorG}" Width="150"/>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Grid.Row="3">B:</TextBlock>
-                            <TextBox Margin="5,0,5,0" Grid.Row="3" Grid.Column="1" Text="{Binding ColorB}" Width="150"/>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Grid.Row="4">A:</TextBlock>
-                            <TextBox Margin="5,0,5,0" Grid.Row="4" Grid.Column="1" Text="{Binding ColorA}" Width="150"/>
-                        </StackPanel>
-
-                        <Button Margin="0,5,0,0" Command="{Binding ChangeColorCommand}" Grid.ColumnSpan="3">Изменить цвет</Button>
-                    </StackPanel>
-                </Expander>
-
                 <Expander IsEnabled="{Binding IsAvailable}" FontSize="16" Header="Масштабирование">
                     <StackPanel>
                         <TextBox  Margin="5" Text="{Binding Scale}"/>
