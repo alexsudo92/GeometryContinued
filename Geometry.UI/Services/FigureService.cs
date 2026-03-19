@@ -242,7 +242,7 @@ namespace Geometry.UI.Services
 
                     var points = new PointCollection();
                     var projectedVertices = new List<ProjectedVertex>(faceVertices.Count);
-                    var candidateLines = new List<Line>(faceVertices.Count);
+                    var candidateLines = new List<ProjectedLine>(faceVertices.Count);
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
@@ -251,14 +251,17 @@ namespace Geometry.UI.Services
                         projectedVertices.Add(new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z));
 
                         var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
-                        candidateLines.Add(new Line
-                        {
-                            X1 = vertex.X,
-                            Y1 = -vertex.Y,
-                            X2 = nextVertex.X,
-                            Y2 = -nextVertex.Y,
-                            Color = Colors.Black
-                        });
+                        candidateLines.Add(new ProjectedLine(
+                            new Line
+                            {
+                                X1 = vertex.X,
+                                Y1 = -vertex.Y,
+                                X2 = nextVertex.X,
+                                Y2 = -nextVertex.Y,
+                                Color = Colors.Black
+                            },
+                            new ProjectedVertex(vertex.X, -vertex.Y, vertex.Z),
+                            new ProjectedVertex(nextVertex.X, -nextVertex.Y, nextVertex.Z)));
                     }
 
                     polygonCandidates.Add(new PolygonCandidate
@@ -302,7 +305,7 @@ namespace Geometry.UI.Services
             {
                 return new RenderResult(
                     candidates.Select(candidate => candidate.Polygon).ToList(),
-                    candidates.SelectMany(candidate => candidate.Lines).ToList());
+                    candidates.SelectMany(candidate => candidate.Lines).Select(line => line.Line).ToList());
             }
 
             var width = bounds.maxX - bounds.minX + 1;
@@ -350,9 +353,15 @@ namespace Geometry.UI.Services
                 .OrderBy(candidate => candidate.Polygon.Depth)
                 .ToList();
 
+            var visibleLines = orderedVisibleCandidates
+                .SelectMany(candidate => candidate.Lines)
+                .Where(line => IsLineVisible(line, bounds.minX, bounds.minY, depthBuffer))
+                .Select(line => line.Line)
+                .ToList();
+
             return new RenderResult(
                 orderedVisibleCandidates.Select(candidate => candidate.Polygon).ToList(),
-                orderedVisibleCandidates.SelectMany(candidate => candidate.Lines).ToList());
+                visibleLines);
         }
 
         private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(IReadOnlyList<PolygonCandidate> candidates)
@@ -420,6 +429,37 @@ namespace Geometry.UI.Services
             }
         }
 
+        private static bool IsLineVisible(ProjectedLine line, int offsetX, int offsetY, float[,] depthBuffer)
+        {
+            var deltaX = line.End.X - line.Start.X;
+            var deltaY = line.End.Y - line.Start.Y;
+            var deltaZ = line.End.Z - line.Start.Z;
+            var steps = Math.Max(2, (int)MathF.Ceiling(MathF.Max(MathF.Abs(deltaX), MathF.Abs(deltaY))) + 1);
+            const float depthTolerance = 0.5f;
+
+            for (var step = 0; step <= steps; step++)
+            {
+                var t = step / (float)steps;
+                var sampleX = line.Start.X + deltaX * t;
+                var sampleY = line.Start.Y + deltaY * t;
+                var sampleZ = line.Start.Z + deltaZ * t;
+                var bufferX = (int)MathF.Round(sampleX) - offsetX;
+                var bufferY = (int)MathF.Round(sampleY) - offsetY;
+
+                if (bufferX < 0 || bufferX >= depthBuffer.GetLength(0) || bufferY < 0 || bufferY >= depthBuffer.GetLength(1))
+                {
+                    continue;
+                }
+
+                if (sampleZ >= depthBuffer[bufferX, bufferY] - depthTolerance)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py) =>
             (px - ax) * (by - ay) - (py - ay) * (bx - ax);
 
@@ -427,8 +467,10 @@ namespace Geometry.UI.Services
         {
             public required FacePolygon Polygon { get; init; }
             public required List<ProjectedVertex> Vertices { get; init; }
-            public required List<Line> Lines { get; init; }
+            public required List<ProjectedLine> Lines { get; init; }
         }
+
+        private readonly record struct ProjectedLine(Line Line, ProjectedVertex Start, ProjectedVertex End);
 
         private sealed record RenderResult(IReadOnlyList<FacePolygon> Polygons, IReadOnlyList<Line> Lines)
         {
