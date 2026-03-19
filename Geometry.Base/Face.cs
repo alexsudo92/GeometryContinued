@@ -1,6 +1,6 @@
 namespace Geometry.Base
 {
-    public class Face
+    public class Triangle
     {
         public List<int> Vertices { get; set; } = [];
         public FaceColor Color { get; set; } = new();

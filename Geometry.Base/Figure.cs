@@ -5,7 +5,7 @@ namespace Geometry.Base
     public class Figure
     {
         public List<Vector4> Vertices { get; set; } = [];
-        public List<Face> Faces { get; set; } = [];
+        public List<Triangle> Triangles { get; set; } = [];
 
         public void TransformAllVertices(Matrix4x4 matrix)
         {

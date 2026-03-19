@@ -18,10 +18,10 @@ namespace Geometry.UI.Models
                 Name = Name,
                 Color = Color,
                 Vertices = [.. Vertices],
-                Faces = [.. Faces.Select(face => new Face
+                Triangles = [.. Triangles.Select(triangle => new Triangle
                 {
-                    Color = face.Color,
-                    Vertices = [.. face.Vertices]
+                    Color = triangle.Color,
+                    Vertices = [.. triangle.Vertices]
                 })]
             };
         }

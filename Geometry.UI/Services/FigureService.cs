@@ -185,38 +185,37 @@ namespace Geometry.UI.Services
 
         private void RenderAllFigures()
         {
-            var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygonCandidates = new List<(PolygonModel Polygon, List<Vector3> Vertices)>();
+            var triangles = new List<ScreenTriangle>();
 
-            foreach (var fw in _figures.Items)
+            foreach (var figure in _figures.Items)
             {
-                foreach (var face in fw.Faces)
+                foreach (var triangle in figure.Triangles)
                 {
-                    var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
-                    var faceVertices = face.Vertices;
-
-                    var points = new PointCollection();
-                    var projectedVertices = new List<Vector3>(faceVertices.Count);
-
-                    for (var i = 0; i < faceVertices.Count; i++)
+                    if (triangle.Vertices.Count != 3)
                     {
-                        var vertex = fw.Vertices[faceVertices[i]];
-                        points.Add(new Point(vertex.X, -vertex.Y));
-                        projectedVertices.Add(new Vector3(vertex.X, -vertex.Y, vertex.Z));
+                        continue;
                     }
 
-                    polygonCandidates.Add((
-                        new PolygonModel
-                        {
-                            Points = points,
-                            FillColor = faceColor,
-                            Depth = float.NegativeInfinity
-                        },
-                        projectedVertices));
+                    var faceColor = Color.FromArgb(triangle.Color.A, triangle.Color.R, triangle.Color.G, triangle.Color.B);
+                    var screenVertices = triangle.Vertices
+                        .Select(index => figure.Vertices[index])
+                        .Select(vertex => new Vector3(vertex.X, -vertex.Y, vertex.Z))
+                        .ToArray();
+
+                    triangles.Add(new ScreenTriangle(screenVertices[0], screenVertices[1], screenVertices[2], new PolygonModel
+                    {
+                        Points = [
+                            new Point(screenVertices[0].X, screenVertices[0].Y),
+                            new Point(screenVertices[1].X, screenVertices[1].Y),
+                            new Point(screenVertices[2].X, screenVertices[2].Y)
+                        ],
+                        FillColor = faceColor,
+                        Depth = float.NegativeInfinity
+                    }));
                 }
             }
 
-            var polygons = ApplyZBuffer(polygonCandidates);
+            var polygons = ApplyZBuffer(triangles);
 
             _polygons.Edit(list =>
             {
@@ -225,74 +224,42 @@ namespace Geometry.UI.Services
             });
         }
 
-        private static List<PolygonModel> ApplyZBuffer(List<(PolygonModel Polygon, List<Vector3> Vertices)> candidates)
+        private static List<PolygonModel> ApplyZBuffer(List<ScreenTriangle> triangles)
         {
-            if (candidates.Count == 0)
+            if (triangles.Count == 0)
             {
                 return [];
             }
 
-            var (minX, minY, maxX, maxY) = GetSceneBounds(candidates);
-            if (maxX < minX || maxY < minY)
+            var bounds = GetSceneBounds(triangles);
+            if (!bounds.HasArea)
             {
-                return [.. candidates.Select(candidate => candidate.Polygon)];
+                return [.. triangles.Select(triangle => triangle.Polygon)];
             }
 
-            var width = maxX - minX + 1;
-            var height = maxY - minY + 1;
-            var depthBuffer = new float[width, height];
-            var ownerBuffer = new int[width, height];
+            var depthBuffer = CreateDepthBuffer(bounds.Width, bounds.Height);
+            var ownerBuffer = CreateOwnerBuffer(bounds.Width, bounds.Height);
 
-            for (var x = 0; x < width; x++)
+            for (var triangleIndex = 0; triangleIndex < triangles.Count; triangleIndex++)
             {
-                for (var y = 0; y < height; y++)
-                {
-                    depthBuffer[x, y] = float.NegativeInfinity;
-                    ownerBuffer[x, y] = -1;
-                }
+                RasterizeTriangle(triangles[triangleIndex], triangleIndex, bounds, depthBuffer, ownerBuffer);
             }
 
-            for (var polygonIndex = 0; polygonIndex < candidates.Count; polygonIndex++)
-            {
-                var vertices = candidates[polygonIndex].Vertices;
-
-                for (var vertexIndex = 1; vertexIndex < vertices.Count - 1; vertexIndex++)
-                {
-                    RasterizeTriangle(vertices[0], vertices[vertexIndex], vertices[vertexIndex + 1], polygonIndex, minX, minY, depthBuffer, ownerBuffer);
-                }
-            }
-
-            var visiblePolygons = new HashSet<int>();
-            for (var x = 0; x < width; x++)
-            {
-                for (var y = 0; y < height; y++)
-                {
-                    var owner = ownerBuffer[x, y];
-                    if (owner < 0)
-                    {
-                        continue;
-                    }
-
-                    visiblePolygons.Add(owner);
-                    candidates[owner].Polygon.Depth = MathF.Max(candidates[owner].Polygon.Depth, depthBuffer[x, y]);
-                }
-            }
-
-            return [.. visiblePolygons
-                .Select(index => candidates[index].Polygon)
-                .OrderBy(polygon => polygon.Depth)];
+            return CollectVisiblePolygons(triangles, depthBuffer, ownerBuffer)
+                .OrderBy(polygon => polygon.Depth)
+                .ToList();
         }
 
-        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<(PolygonModel Polygon, List<Vector3> Vertices)> candidates)
+        private static SceneBounds GetSceneBounds(List<ScreenTriangle> triangles)
         {
             var minX = int.MaxValue;
             var minY = int.MaxValue;
             var maxX = int.MinValue;
             var maxY = int.MinValue;
 
-            foreach (var (Polygon, Vertices) in candidates)
+            foreach (var triangle in triangles)
             {
-                foreach (var vertex in Vertices)
+                foreach (var vertex in triangle.Vertices)
                 {
                     minX = Math.Min(minX, (int)MathF.Floor(vertex.X));
                     minY = Math.Min(minY, (int)MathF.Floor(vertex.Y));
@@ -301,15 +268,68 @@ namespace Geometry.UI.Services
                 }
             }
 
-            return (minX, minY, maxX, maxY);
+            return new SceneBounds(minX, minY, maxX, maxY);
         }
 
-        private static void RasterizeTriangle(Vector3 v1, Vector3 v2, Vector3 v3, int polygonIndex, int offsetX, int offsetY, float[,] depthBuffer, int[,] ownerBuffer)
+        private static float[,] CreateDepthBuffer(int width, int height)
         {
-            var minX = Math.Max((int)MathF.Floor(MathF.Min(v1.X, MathF.Min(v2.X, v3.X))), offsetX);
-            var maxX = Math.Min((int)MathF.Ceiling(MathF.Max(v1.X, MathF.Max(v2.X, v3.X))), offsetX + depthBuffer.GetLength(0) - 1);
-            var minY = Math.Max((int)MathF.Floor(MathF.Min(v1.Y, MathF.Min(v2.Y, v3.Y))), offsetY);
-            var maxY = Math.Min((int)MathF.Ceiling(MathF.Max(v1.Y, MathF.Max(v2.Y, v3.Y))), offsetY + depthBuffer.GetLength(1) - 1);
+            var depthBuffer = new float[width, height];
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    depthBuffer[x, y] = float.NegativeInfinity;
+                }
+            }
+
+            return depthBuffer;
+        }
+
+        private static int[,] CreateOwnerBuffer(int width, int height)
+        {
+            var ownerBuffer = new int[width, height];
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    ownerBuffer[x, y] = -1;
+                }
+            }
+
+            return ownerBuffer;
+        }
+
+        private static IEnumerable<PolygonModel> CollectVisiblePolygons(List<ScreenTriangle> triangles, float[,] depthBuffer, int[,] ownerBuffer)
+        {
+            var visibleTriangles = new HashSet<int>();
+
+            for (var x = 0; x < depthBuffer.GetLength(0); x++)
+            {
+                for (var y = 0; y < depthBuffer.GetLength(1); y++)
+                {
+                    var owner = ownerBuffer[x, y];
+                    if (owner < 0)
+                    {
+                        continue;
+                    }
+
+                    visibleTriangles.Add(owner);
+                    triangles[owner].Polygon.Depth = MathF.Max(triangles[owner].Polygon.Depth, depthBuffer[x, y]);
+                }
+            }
+
+            return visibleTriangles.Select(index => triangles[index].Polygon);
+        }
+
+        private static void RasterizeTriangle(ScreenTriangle triangle, int triangleIndex, SceneBounds bounds, float[,] depthBuffer, int[,] ownerBuffer)
+        {
+            var (v1, v2, v3) = triangle;
+            var minX = Math.Max((int)MathF.Floor(MathF.Min(v1.X, MathF.Min(v2.X, v3.X))), bounds.MinX);
+            var maxX = Math.Min((int)MathF.Ceiling(MathF.Max(v1.X, MathF.Max(v2.X, v3.X))), bounds.MaxX);
+            var minY = Math.Max((int)MathF.Floor(MathF.Min(v1.Y, MathF.Min(v2.Y, v3.Y))), bounds.MinY);
+            var maxY = Math.Min((int)MathF.Ceiling(MathF.Max(v1.Y, MathF.Max(v2.Y, v3.Y))), bounds.MaxY);
             var denominator = EdgeFunction(v1.X, v1.Y, v2.X, v2.Y, v3.X, v3.Y);
 
             if (MathF.Abs(denominator) < float.Epsilon)
@@ -334,8 +354,8 @@ namespace Geometry.UI.Services
                     }
 
                     var depth = v1.Z * w0 + v2.Z * w1 + v3.Z * w2;
-                    var bufferX = x - offsetX;
-                    var bufferY = y - offsetY;
+                    var bufferX = x - bounds.MinX;
+                    var bufferY = y - bounds.MinY;
 
                     if (depth <= depthBuffer[bufferX, bufferY])
                     {
@@ -343,7 +363,7 @@ namespace Geometry.UI.Services
                     }
 
                     depthBuffer[bufferX, bufferY] = depth;
-                    ownerBuffer[bufferX, bufferY] = polygonIndex;
+                    ownerBuffer[bufferX, bufferY] = triangleIndex;
                 }
             }
         }
@@ -351,5 +371,23 @@ namespace Geometry.UI.Services
         private static float EdgeFunction(float ax, float ay, float bx, float by, float px, float py) =>
             (px - ax) * (by - ay) - (py - ay) * (bx - ax);
 
+        private readonly record struct ScreenTriangle(Vector3 A, Vector3 B, Vector3 C, PolygonModel Polygon)
+        {
+            public Vector3[] Vertices => [A, B, C];
+
+            public void Deconstruct(out Vector3 a, out Vector3 b, out Vector3 c)
+            {
+                a = A;
+                b = B;
+                c = C;
+            }
+        }
+
+        private readonly record struct SceneBounds(int MinX, int MinY, int MaxX, int MaxY)
+        {
+            public bool HasArea => MaxX >= MinX && MaxY >= MinY;
+            public int Width => MaxX - MinX + 1;
+            public int Height => MaxY - MinY + 1;
+        }
     }
 }
