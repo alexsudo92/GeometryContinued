@@ -245,9 +245,7 @@ namespace Geometry.UI.Services
                 RasterizeTriangle(triangles[triangleIndex], triangleIndex, bounds, depthBuffer, ownerBuffer);
             }
 
-            return CollectVisiblePolygons(triangles, depthBuffer, ownerBuffer)
-                .OrderBy(polygon => polygon.Depth)
-                .ToList();
+            return [.. CollectVisiblePolygons(triangles, depthBuffer, ownerBuffer).OrderBy(polygon => polygon.Depth)];
         }
 
         private static SceneBounds GetSceneBounds(List<ScreenTriangle> triangles)
