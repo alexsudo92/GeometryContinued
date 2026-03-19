@@ -234,23 +234,40 @@
                        Height="{Binding AreaHeight}"
                        Stroke="Black" StrokeThickness="2"  Fill="Aqua" Opacity="0.5"/>
         </Canvas>
-        <ItemsControl Background="WhiteSmoke" ItemsSource="{Binding Lines}" Grid.Column="1">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Canvas VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+        <Grid Grid.Column="1" Background="WhiteSmoke">
+            <ItemsControl ItemsSource="{Binding Polygons}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
 
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Line X1="{Binding X1}" 
-                          Y1="{Binding Y1}" 
-                          X2="{Binding X2}" 
-                          Y2="{Binding Y2}"
-                          Stroke="{Binding Color, Converter={StaticResource ColorBrushConverter}}"
-                          StrokeThickness="3" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Polygon Points="{Binding Points}"
+                                 Fill="{Binding FillColor, Converter={StaticResource ColorBrushConverter}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Lines}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Line X1="{Binding X1}" 
+                              Y1="{Binding Y1}" 
+                              X2="{Binding X2}" 
+                              Y2="{Binding Y2}"
+                              Stroke="{Binding Color, Converter={StaticResource ColorBrushConverter}}"
+                              StrokeThickness="4" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
     </Grid>
 </Window>

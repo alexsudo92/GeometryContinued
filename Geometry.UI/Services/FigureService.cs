@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 
 namespace Geometry.UI.Services
@@ -14,6 +15,9 @@ namespace Geometry.UI.Services
         private readonly SourceList<Line> _lines;
         public IObservable<IChangeSet<Line>> Lines => _lines.Connect();
 
+        private readonly SourceList<FacePolygon> _polygons;
+        public IObservable<IChangeSet<FacePolygon>> Polygons => _polygons.Connect();
+
         private readonly SourceList<FigureModel> _figures;
         public IObservable<IChangeSet<FigureModel>> Figures => _figures.Connect();
 
@@ -21,6 +25,7 @@ namespace Geometry.UI.Services
         {
             _figures = new SourceList<FigureModel>();
             _lines = new SourceList<Line>();
+            _polygons = new SourceList<FacePolygon>();
         }
 
         public void AddFigure(FigureModel figureModel)
@@ -42,6 +47,7 @@ namespace Geometry.UI.Services
         {
             _figures.Clear();
             _lines.Clear();
+            _polygons.Clear();
 
             RenderAllFigures();
         }
@@ -202,82 +208,74 @@ namespace Geometry.UI.Services
 
         private void RenderAllFigures()
         {
+            var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
+            var polygons = new List<FacePolygon>();
+            var lines = new List<Line>();
+
+            foreach (var fw in _figures.Items)
+            {
+                foreach (var face in fw.Faces)
+                {
+                    var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
+                    var faceVertices = face.Vertices;
+
+                    if (faceVertices.Count < 3)
+                    {
+                        continue;
+                    }
+
+                    var v1 = fw.Vertices[faceVertices[0]];
+                    var v2 = fw.Vertices[faceVertices[1]];
+                    var v3 = fw.Vertices[faceVertices[2]];
+
+                    var a = v2 - v1;
+                    var b = v3 - v1;
+
+                    var normal = Vector4.Cross(a, b);
+                    var dot = Vector4.Dot(normal, cameraDirection);
+
+                    if (dot <= 0f)
+                    {
+                        continue;
+                    }
+
+                    var points = new PointCollection();
+
+                    for (var i = 0; i < faceVertices.Count; i++)
+                    {
+                        var vertex = fw.Vertices[faceVertices[i]];
+                        var point = new Point(vertex.X, -vertex.Y);
+                        points.Add(point);
+
+                        var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
+                        lines.Add(new Line
+                        {
+                            X1 = vertex.X,
+                            Y1 = -vertex.Y,
+                            X2 = nextVertex.X,
+                            Y2 = -nextVertex.Y,
+                            Color = Colors.Black
+                        });
+                    }
+
+                    polygons.Add(new FacePolygon
+                    {
+                        Points = points,
+                        FillColor = faceColor
+                    });
+                }
+            }
+
+            _polygons.Edit(list =>
+            {
+                list.Clear();
+                list.AddRange(polygons);
+            });
+
             _lines.Edit(list =>
             {
                 list.Clear();
-                var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-
-                foreach (var fw in _figures.Items)
-                {
-                    foreach (var face in fw.Faces)
-                    {
-                        var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
-                        var faceVertices = face.Vertices;
-
-                        var v1 = fw.Vertices[faceVertices[0]];
-                        var v2 = fw.Vertices[faceVertices[1]];
-                        var v3 = fw.Vertices[faceVertices[2]];
-
-                        var a = v2 - v1;
-                        var b = v3 - v1;
-
-                        var normal = Vector4.Cross(a, b);
-                        var dot = Vector4.Dot(normal, cameraDirection);
-
-                        if (dot > 0f)
-                        {
-                            list.AddRange([
-                                new() {
-                                    X1 = v1.X,
-                                    Y1 = -v1.Y,
-                                    X2 = v2.X,
-                                    Y2 = -v2.Y,
-                                    Color = faceColor
-                                },
-                                new() {
-                                    X1 = v2.X,
-                                    Y1 = -v2.Y,
-                                    X2 = v3.X,
-                                    Y2 = -v3.Y,
-                                    Color = faceColor
-                            }]);
-
-                            if (faceVertices.Count >= 4)
-                            {
-                                var v4 = fw.Vertices[faceVertices[3]];
-
-                                list.AddRange([
-                                    new()
-                                    {
-                                        X1 = v3.X,
-                                        Y1 = -v3.Y,
-                                        X2 = v4.X,
-                                        Y2 = -v4.Y,
-                                        Color = faceColor
-                                    },
-                                    new()
-                                    {
-                                        X1 = v4.X,
-                                        Y1 = -v4.Y,
-                                        X2 = v1.X,
-                                        Y2 = -v1.Y,
-                                        Color = faceColor
-                                    }]);
-                            }
-                            else
-                            {
-                                list.Add(new()
-                                {
-                                    X1 = v3.X,
-                                    Y1 = -v3.Y,
-                                    X2 = v1.X,
-                                    Y2 = -v1.Y,
-                                    Color = faceColor
-                                });
-                            }
-                        }
-                    }
-                }
+                list.AddRange(lines);
             });
         }
     }

@@ -38,6 +38,7 @@ namespace Geometry.UI.ViewModels
         private Visibility _isAreaVisible = Visibility.Hidden;
 
         private readonly ReadOnlyObservableCollection<Line> _lines;
+        private readonly ReadOnlyObservableCollection<FacePolygon> _polygons;
         private readonly ReadOnlyObservableCollection<FigureModel> _figures;
         private readonly ReadOnlyObservableCollection<FigureModel> _availableFigures;
         private FigureModel _selectedFigure;
@@ -148,6 +149,7 @@ namespace Geometry.UI.ViewModels
 
         public ReadOnlyObservableCollection<FigureModel> AvaiableFigures => _availableFigures;
         public ReadOnlyObservableCollection<FigureModel> Figures => _figures;
+        public ReadOnlyObservableCollection<FacePolygon> Polygons => _polygons;
         public ReadOnlyObservableCollection<Line> Lines => _lines;
 
         public FigureModel SelectedFigure
@@ -185,6 +187,11 @@ namespace Geometry.UI.ViewModels
                 .SortBy(x => x.Id)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _availableFigures)
+                .Subscribe();
+
+            _figureService.Polygons
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Bind(out _polygons)
                 .Subscribe();
 
             _figureService.Lines
