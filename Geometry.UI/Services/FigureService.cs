@@ -184,25 +184,6 @@ namespace Geometry.UI.Services
             }
         }
 
-        public void ChangeFigureColor(int id, Color color)
-        {
-            if (_figures.Items[id] is not null)
-            {
-                var figure = _figures.Items[id];
-                figure.Color = color;
-
-                foreach (var face in figure.Faces)
-                {
-                    face.Color.R = color.R;
-                    face.Color.G = color.G;
-                    face.Color.B = color.B;
-                    face.Color.A = color.A;
-                }
-
-                RenderAllFigures();
-            }
-        }
-
         private void RenderAllFigures()
         {
             var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
@@ -327,7 +308,7 @@ namespace Geometry.UI.Services
                 .OrderBy(polygon => polygon.Depth)];
         }
 
-        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(IReadOnlyList<PolygonCandidate> candidates)
+        private static (int minX, int minY, int maxX, int maxY) GetSceneBounds(List<PolygonCandidate> candidates)
         {
             var minX = int.MaxValue;
             var minY = int.MaxValue;
