@@ -1,5 +1,7 @@
 using Geometry.ZBufferUI.Models;
 using Geometry.ZBufferUI.Services;
+using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -90,7 +92,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static Model3D CreateFigureModel(
+    private static Model3DGroup CreateFigureModel(
         FigureDefinition figure,
         Vector3D offset,
         bool isSelected,
