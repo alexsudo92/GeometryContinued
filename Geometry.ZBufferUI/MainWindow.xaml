@@ -1,0 +1,74 @@
+<Window x:Class="Geometry.ZBufferUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Z-buffer Viewport3D"
+        Width="1100"
+        Height="700"
+        MinWidth="900"
+        MinHeight="600">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Padding="12" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="Фигуры" />
+                    <TextBlock Margin="0,8,0,12" TextWrapping="Wrap" Foreground="#4B5563"
+                               Text="Описание фигур считывается из YAML тем же способом, что и в основном приложении: вершины и треугольники загружаются из файлов cube.yaml и 4pyramid.yaml." />
+                    <TextBlock FontWeight="SemiBold" Text="Доступные описания" />
+                    <ListBox x:Name="AvailableFiguresList"
+                             Height="150"
+                             Margin="0,8,0,12"
+                             DisplayMemberPath="Name" />
+                    <Button x:Name="LoadFigureButton"
+                            Height="32"
+                            Click="LoadFigureButton_OnClick"
+                            Content="Загрузить в Viewport3D" />
+                    <Separator Margin="0,16,0,16" />
+                    <TextBlock FontWeight="SemiBold" Text="Загруженные фигуры" />
+                    <ListBox x:Name="LoadedFiguresList"
+                             Height="170"
+                             Margin="0,8,0,0"
+                             DisplayMemberPath="Name"
+                             SelectionChanged="LoadedFiguresList_OnSelectionChanged" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+                    <TextBlock FontWeight="SemiBold" Text="Камера" />
+                    <TextBlock Margin="0,8,0,0" Text="Поворот по Y" />
+                    <Slider x:Name="YawSlider" Minimum="-180" Maximum="180" ValueChanged="CameraSlider_OnValueChanged" />
+                    <TextBlock Margin="0,8,0,0" Text="Поворот по X" />
+                    <Slider x:Name="PitchSlider" Minimum="-89" Maximum="89" Value="-18" ValueChanged="CameraSlider_OnValueChanged" />
+                    <TextBlock Margin="0,8,0,0" Text="Расстояние" />
+                    <Slider x:Name="DistanceSlider" Minimum="300" Maximum="1500" Value="700" ValueChanged="CameraSlider_OnValueChanged" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="2" Padding="12" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Margin="0,0,0,12" TextWrapping="Wrap">
+                    <Run Text="Viewport3D использует аппаратный Z-буфер WPF, поэтому ближайшие треугольники автоматически перекрывают дальние без ручной сортировки." />
+                </TextBlock>
+
+                <Viewport3D x:Name="SceneViewport" Grid.Row="1" ClipToBounds="True">
+                    <Viewport3D.Camera>
+                        <PerspectiveCamera x:Name="MainCamera" FieldOfView="60" UpDirection="0,1,0" />
+                    </Viewport3D.Camera>
+                </Viewport3D>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
