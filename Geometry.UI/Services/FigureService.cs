@@ -209,9 +209,8 @@ namespace Geometry.UI.Services
 
         private void RenderAllFigures()
         {
-            var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
-            var polygons = new List<FacePolygon>();
-            var lines = new List<Line>();
+            var cameraDirection = new Vector4(0f, 0f, -1f, 0f);
+            var visibleFaces = new List<(float Depth, FacePolygon Polygon, IReadOnlyList<Line> Lines)>();
 
             foreach (var fw in _figures.Items)
             {
@@ -231,25 +230,32 @@ namespace Geometry.UI.Services
 
                     var a = v2 - v1;
                     var b = v3 - v1;
-
                     var normal = Vector4.Cross(a, b);
+
+                    if (normal.LengthSquared() == 0f)
+                    {
+                        continue;
+                    }
+
                     var dot = Vector4.Dot(normal, cameraDirection);
 
-                    if (dot <= 0f)
+                    if (dot == 0f)
                     {
                         continue;
                     }
 
                     var points = new PointCollection();
+                    var faceLines = new List<Line>(faceVertices.Count);
+                    var depth = 0f;
 
                     for (var i = 0; i < faceVertices.Count; i++)
                     {
                         var vertex = fw.Vertices[faceVertices[i]];
-                        var point = new Point(vertex.X, -vertex.Y);
-                        points.Add(point);
+                        points.Add(new Point(vertex.X, -vertex.Y));
+                        depth += vertex.Z;
 
                         var nextVertex = fw.Vertices[faceVertices[(i + 1) % faceVertices.Count]];
-                        lines.Add(new Line
+                        faceLines.Add(new Line
                         {
                             X1 = vertex.X,
                             Y1 = -vertex.Y,
@@ -259,12 +265,26 @@ namespace Geometry.UI.Services
                         });
                     }
 
-                    polygons.Add(new FacePolygon
-                    {
-                        Points = points,
-                        FillColor = faceColor
-                    });
+                    visibleFaces.Add((
+                        Depth: depth / faceVertices.Count,
+                        Polygon: new FacePolygon
+                        {
+                            Points = points,
+                            FillColor = faceColor
+                        },
+                        Lines: faceLines));
                 }
+            }
+
+            visibleFaces.Sort((left, right) => left.Depth.CompareTo(right.Depth));
+
+            var polygons = new List<FacePolygon>(visibleFaces.Count);
+            var lines = new List<Line>();
+
+            foreach (var face in visibleFaces)
+            {
+                polygons.Add(face.Polygon);
+                lines.AddRange(face.Lines);
             }
 
             _polygons.Edit(list =>
