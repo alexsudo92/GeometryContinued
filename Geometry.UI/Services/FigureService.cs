@@ -3,6 +3,7 @@ using Geometry.Base.Transformation;
 using Geometry.UI.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -207,14 +208,41 @@ namespace Geometry.UI.Services
             }
         }
 
+        private static bool IsClosedFigure(IReadOnlyCollection<Geometry.Base.Face> faces)
+        {
+            var edgeUsage = new Dictionary<(int Start, int End), int>();
+
+            foreach (var face in faces)
+            {
+                if (face.Vertices.Count < 3)
+                {
+                    continue;
+                }
+
+                for (var i = 0; i < face.Vertices.Count; i++)
+                {
+                    var start = face.Vertices[i];
+                    var end = face.Vertices[(i + 1) % face.Vertices.Count];
+                    var edge = start < end ? (start, end) : (end, start);
+
+                    edgeUsage.TryGetValue(edge, out var usageCount);
+                    edgeUsage[edge] = usageCount + 1;
+                }
+            }
+
+            return edgeUsage.Count > 0 && edgeUsage.Values.All(count => count == 2);
+        }
+
         private void RenderAllFigures()
         {
-            var cameraDirection = new Vector4(0f, 0f, -1f, 1f);
+            var cameraDirection = new Vector4(0f, 0f, -1f, 0f);
             var polygons = new List<FacePolygon>();
             var lines = new List<Line>();
 
             foreach (var fw in _figures.Items)
             {
+                var isClosedFigure = IsClosedFigure(fw.Faces);
+
                 foreach (var face in fw.Faces)
                 {
                     var faceColor = Color.FromArgb(face.Color.A, face.Color.R, face.Color.G, face.Color.B);
@@ -235,7 +263,7 @@ namespace Geometry.UI.Services
                     var normal = Vector4.Cross(a, b);
                     var dot = Vector4.Dot(normal, cameraDirection);
 
-                    if (dot <= 0f)
+                    if (isClosedFigure && dot <= 0f)
                     {
                         continue;
                     }
