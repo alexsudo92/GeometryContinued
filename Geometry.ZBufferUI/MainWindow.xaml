@@ -30,7 +30,7 @@
                     <Button x:Name="LoadFigureButton"
                             Height="32"
                             Click="LoadFigureButton_OnClick"
-                            Content="Загрузить в Viewport3D" />
+                            Content="Добавить" />
                     <Separator Margin="0,16,0,16" />
                     <TextBlock FontWeight="SemiBold" Text="Загруженные фигуры" />
                     <ListBox x:Name="LoadedFiguresList"
@@ -41,19 +41,6 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
-                    <TextBlock FontWeight="SemiBold" Text="Режим рендеринга" />
-                    <CheckBox x:Name="UseZBufferCheckBox"
-                              Margin="0,8,0,0"
-                              IsChecked="True"
-                              Checked="UseZBufferCheckBox_OnChanged"
-                              Unchecked="UseZBufferCheckBox_OnChanged"
-                              Content="Использовать Z-буфер" />
-                    <TextBlock x:Name="RenderModeDescriptionTextBlock"
-                               Margin="0,8,0,0"
-                               TextWrapping="Wrap"
-                               Foreground="#4B5563"
-                               Text="При включённом Z-буфере видимость треугольников определяется их реальной глубиной." />
-                    <Separator Margin="0,16,0,16" />
                     <TextBlock FontWeight="SemiBold" Text="Камера" />
                     <TextBlock Margin="0,8,0,0" Text="Поворот по Y" />
                     <Slider x:Name="YawSlider" Minimum="-180" Maximum="180" ValueChanged="CameraSlider_OnValueChanged" />
@@ -71,10 +58,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-
-                <TextBlock Margin="0,0,0,12" TextWrapping="Wrap">
-                    <Run Text="В режиме с Z-буфером Viewport3D использует аппаратную проверку глубины WPF. В режиме без Z-буфера приложение принудительно смещает треугольники по порядку отрисовки, имитируя painter&apos;s algorithm без проверки глубины." />
-                </TextBlock>
 
                 <Viewport3D x:Name="SceneViewport" Grid.Row="1" ClipToBounds="True">
                     <Viewport3D.Camera>
