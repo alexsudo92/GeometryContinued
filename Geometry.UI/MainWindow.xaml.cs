@@ -9,6 +9,7 @@ using System.Linq;
 using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -19,6 +20,14 @@ public partial class MainWindow : Window
     private readonly FigureLoaderService _loaderService;
     private readonly List<LoadedFigureInstance> _loadedFigures = [];
     private readonly Model3DGroup _scene = new();
+
+    private double _cameraYaw = -35;
+    private double _cameraPitch = -18;
+    private double _cameraDistance = 700;
+    private Vector3 _cameraTarget = Vector3.Zero;
+    private bool _isRotating;
+    private bool _isPanning;
+    private Point _lastMousePosition;
 
     public MainWindow()
     {
@@ -40,10 +49,7 @@ public partial class MainWindow : Window
 
     private void LoadFigureButton_OnClick(object sender, RoutedEventArgs e)
     {
-        if (AvailableFiguresList.SelectedItem is not FigureDefinition figure)
-        {
-            return;
-        }
+        if (AvailableFiguresList.SelectedItem is not FigureDefinition figure) return;
 
         var instance = new LoadedFigureInstance(figure, _loadedFigures.Count + 1);
         _loadedFigures.Add(instance);
@@ -54,10 +60,7 @@ public partial class MainWindow : Window
 
     private void RemoveFigureButton_OnClick(object sender, RoutedEventArgs e)
     {
-        if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance)
-        {
-            return;
-        }
+        if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance) return;
 
         _loadedFigures.Remove(instance);
         ReloadLoadedFiguresList();
@@ -66,61 +69,127 @@ public partial class MainWindow : Window
 
     private void LoadedFiguresList_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (LoadedFiguresList.SelectedItem is LoadedFigureInstance instance)
-        {
-            ScaleBox.Text = $"{instance.Scale.X} {instance.Scale.Y} {instance.Scale.Z}";
-            RotationBox.Text = $"{instance.RotationAngle} {instance.RotationAxis.X} {instance.RotationAxis.Y} {instance.RotationAxis.Z}";
-            TranslationBox.Text = $"{instance.Translation.X} {instance.Translation.Y} {instance.Translation.Z}";
-            ShearBox.Text = $"{instance.Shear.XY} {instance.Shear.XZ} {instance.Shear.YX} {instance.Shear.YZ} {instance.Shear.ZX} {instance.Shear.ZY}";
-            PerspectiveBox.Text = $"{instance.Perspective.X} {instance.Perspective.Y} {instance.Perspective.Z}";
-        }
-
-        BuildScene();
-    }
-
-    private void ApplyTransformButton_OnClick(object sender, RoutedEventArgs e)
-    {
         if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance)
         {
             return;
         }
 
+        ScaleBox.Text = $"{instance.Scale.X} {instance.Scale.Y} {instance.Scale.Z}";
+        RotationBox.Text = $"{instance.RotationAngle} {instance.RotationAxis.X} {instance.RotationAxis.Y} {instance.RotationAxis.Z}";
+        TranslationBox.Text = $"{instance.Translation.X} {instance.Translation.Y} {instance.Translation.Z}";
+        ShearBox.Text = $"{instance.Shear.XY} {instance.Shear.XZ} {instance.Shear.YX} {instance.Shear.YZ} {instance.Shear.ZX} {instance.Shear.ZY}";
+        PerspectiveBox.Text = $"{instance.Perspective.X} {instance.Perspective.Y} {instance.Perspective.Z}";
+
+        BuildScene();
+    }
+
+    private void ApplyScaleButton_OnClick(object sender, RoutedEventArgs e) => ApplyToSelectedFigure(instance =>
+    {
+        instance.Scale = ParseVector3(ScaleBox.Text);
+    });
+
+    private void ApplyRotationButton_OnClick(object sender, RoutedEventArgs e) => ApplyToSelectedFigure(instance =>
+    {
+        var rotation = ParseFloatArray(RotationBox.Text, 4);
+        instance.RotationAngle = rotation[0];
+        instance.RotationAxis = new Vector4(rotation[1], rotation[2], rotation[3], 0f);
+    });
+
+    private void ApplyTranslationButton_OnClick(object sender, RoutedEventArgs e) => ApplyToSelectedFigure(instance =>
+    {
+        instance.Translation = ParseVector3(TranslationBox.Text);
+    });
+
+    private void ApplyShearButton_OnClick(object sender, RoutedEventArgs e) => ApplyToSelectedFigure(instance =>
+    {
+        var shear = ParseFloatArray(ShearBox.Text, 6);
+        instance.Shear = new ShearValues(shear[0], shear[1], shear[2], shear[3], shear[4], shear[5]);
+    });
+
+    private void ApplyPerspectiveButton_OnClick(object sender, RoutedEventArgs e) => ApplyToSelectedFigure(instance =>
+    {
+        instance.Perspective = ParseVector3(PerspectiveBox.Text);
+    });
+
+    private void ApplyToSelectedFigure(Action<LoadedFigureInstance> update)
+    {
+        if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance) return;
+
         try
         {
-            instance.Scale = ParseVector3(ScaleBox.Text);
-            var rotation = ParseFloatArray(RotationBox.Text, 4);
-            instance.RotationAngle = rotation[0];
-            instance.RotationAxis = new Vector4(rotation[1], rotation[2], rotation[3], 0f);
-            instance.Translation = ParseVector3(TranslationBox.Text);
-            var shear = ParseFloatArray(ShearBox.Text, 6);
-            instance.Shear = new ShearValues(shear[0], shear[1], shear[2], shear[3], shear[4], shear[5]);
-            instance.Perspective = ParseVector3(PerspectiveBox.Text);
+            update(instance);
+            BuildScene();
         }
         catch (FormatException ex)
         {
             MessageBox.Show(ex.Message, "Ошибка формата", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
         }
-
-        BuildScene();
     }
 
     private void ResetTransformButton_OnClick(object sender, RoutedEventArgs e)
     {
-        if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance)
-        {
-            return;
-        }
+        if (LoadedFiguresList.SelectedItem is not LoadedFigureInstance instance) return;
 
         instance.ResetTransforms();
         LoadedFiguresList_OnSelectionChanged(sender, new SelectionChangedEventArgs(ListBox.SelectionChangedEvent, [], []));
     }
 
-    private void CameraSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void ViewportBorder_OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (!IsInitialized)
+        _cameraDistance = Math.Clamp(_cameraDistance - e.Delta * 0.3, 80, 4000);
+        UpdateCamera();
+    }
+
+    private void ViewportBorder_OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _isRotating = true;
+        _lastMousePosition = e.GetPosition(SceneViewport);
+        Mouse.Capture((IInputElement)sender);
+    }
+
+    private void ViewportBorder_OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _isRotating = false;
+        if (!_isPanning) Mouse.Capture(null);
+    }
+
+    private void ViewportBorder_OnMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle) return;
+        _isPanning = true;
+        _lastMousePosition = e.GetPosition(SceneViewport);
+        Mouse.Capture((IInputElement)sender);
+    }
+
+    private void ViewportBorder_OnMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle) return;
+        _isPanning = false;
+        if (!_isRotating) Mouse.Capture(null);
+    }
+
+    private void ViewportBorder_OnMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isRotating && !_isPanning) return;
+
+        var current = e.GetPosition(SceneViewport);
+        var delta = current - _lastMousePosition;
+        _lastMousePosition = current;
+
+        if (_isRotating)
         {
-            return;
+            _cameraYaw += delta.X * 0.35;
+            _cameraPitch = Math.Clamp(_cameraPitch - delta.Y * 0.25, -89, 89);
+        }
+
+        if (_isPanning)
+        {
+            var yawRad = _cameraYaw * Math.PI / 180.0;
+            var right = new Vector3((float)Math.Sin(yawRad), 0f, (float)-Math.Cos(yawRad));
+            var up = Vector3.UnitY;
+            var panSpeed = (float)(_cameraDistance * 0.0015);
+            _cameraTarget += right * (float)(-delta.X * panSpeed);
+            _cameraTarget += up * (float)(delta.Y * panSpeed);
         }
 
         UpdateCamera();
@@ -160,7 +229,6 @@ public partial class MainWindow : Window
         foreach (var triangle in baseFigure.Triangles)
         {
             var mesh = new MeshGeometry3D();
-
             foreach (var vertexIndex in triangle.Vertices)
             {
                 var vertex = baseFigure.Vertices[vertexIndex];
@@ -212,16 +280,18 @@ public partial class MainWindow : Window
 
     private void UpdateCamera()
     {
-        var yaw = Math.PI * YawSlider.Value / 180.0;
-        var pitch = Math.PI * PitchSlider.Value / 180.0;
-        var distance = DistanceSlider.Value;
+        var yaw = Math.PI * _cameraYaw / 180.0;
+        var pitch = Math.PI * _cameraPitch / 180.0;
 
-        var x = distance * Math.Cos(pitch) * Math.Cos(yaw);
-        var y = distance * Math.Sin(pitch);
-        var z = distance * Math.Cos(pitch) * Math.Sin(yaw);
+        var x = _cameraDistance * Math.Cos(pitch) * Math.Cos(yaw);
+        var y = _cameraDistance * Math.Sin(pitch);
+        var z = _cameraDistance * Math.Cos(pitch) * Math.Sin(yaw);
 
-        MainCamera.Position = new Point3D(x, y, z);
-        MainCamera.LookDirection = new Vector3D(-x, -y, -z);
+        var position = new Vector3((float)x, (float)y, (float)z) + _cameraTarget;
+        var target = _cameraTarget;
+
+        MainCamera.Position = new Point3D(position.X, position.Y, position.Z);
+        MainCamera.LookDirection = new Vector3D(target.X - position.X, target.Y - position.Y, target.Z - position.Z);
         MainCamera.NearPlaneDistance = 1;
         MainCamera.FarPlaneDistance = 5000;
     }
