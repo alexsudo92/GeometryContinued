@@ -1,0 +1,66 @@
+id: 3
+name: BSP House
+vertices:
+  - [-120, -80, -120]
+  - [120, -80, -120]
+  - [120, -80, 120]
+  - [-120, -80, 120]
+  - [-120, 80, -120]
+  - [120, 80, -120]
+  - [120, 80, 120]
+  - [-120, 80, 120]
+  - [0, 170, -120]
+  - [0, 170, 120]
+triangles: []
+bsp_tree:
+  polygons:
+    - vertices: [0, 1, 5]
+      color: { r: 220, g: 120, b: 80, a: 255 }
+    - vertices: [0, 5, 4]
+      color: { r: 220, g: 120, b: 80, a: 255 }
+  front:
+    polygons:
+      - vertices: [1, 2, 6]
+        color: { r: 70, g: 160, b: 220, a: 255 }
+      - vertices: [1, 6, 5]
+        color: { r: 70, g: 160, b: 220, a: 255 }
+      - vertices: [4, 5, 8]
+        color: { r: 180, g: 70, b: 70, a: 255 }
+      - vertices: [5, 8, 9]
+        color: { r: 180, g: 70, b: 70, a: 255 }
+      - vertices: [5, 6, 9]
+        color: { r: 180, g: 70, b: 70, a: 255 }
+    front:
+      polygons:
+        - vertices: [2, 3, 7]
+          color: { r: 100, g: 220, b: 140, a: 255 }
+        - vertices: [2, 7, 6]
+          color: { r: 100, g: 220, b: 140, a: 255 }
+      front:
+        polygons: []
+      back:
+        polygons: []
+    back:
+      polygons:
+        - vertices: [4, 8, 9]
+          color: { r: 160, g: 90, b: 90, a: 255 }
+        - vertices: [4, 9, 7]
+          color: { r: 160, g: 90, b: 90, a: 255 }
+      front:
+        polygons: []
+      back:
+        polygons: []
+  back:
+    polygons:
+      - vertices: [3, 0, 4]
+        color: { r: 220, g: 180, b: 80, a: 255 }
+      - vertices: [3, 4, 7]
+        color: { r: 220, g: 180, b: 80, a: 255 }
+      - vertices: [0, 1, 2]
+        color: { r: 180, g: 180, b: 180, a: 255 }
+      - vertices: [0, 2, 3]
+        color: { r: 180, g: 180, b: 180, a: 255 }
+    front:
+      polygons: []
+    back:
+      polygons: []
