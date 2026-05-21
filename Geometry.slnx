@@ -3,7 +3,5 @@
     <File Path=".editorconfig" />
   </Folder>
   <Project Path="Geometry.Base/Geometry.Base.csproj" />
-  <Project Path="Geometry.OctreeUI/Geometry.OctreeUI.csproj" />
   <Project Path="Geometry.UI/Geometry.UI.csproj" />
-  <Project Path="Geometry.ZBufferUI/Geometry.ZBufferUI.csproj" />
 </Solution>

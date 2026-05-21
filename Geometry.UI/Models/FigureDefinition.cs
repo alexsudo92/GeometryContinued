@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Windows.Media;
 
-namespace Geometry.ZBufferUI.Models;
+namespace Geometry.UI.Models;
 
 public class FigureDefinition
 {
