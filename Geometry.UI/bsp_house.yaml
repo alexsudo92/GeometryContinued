@@ -1,0 +1,50 @@
+id: 2
+name: BSP домик
+
+vertices:
+  - [-120, -80, -80]
+  - [120, -80, -80]
+  - [120, 80, -80]
+  - [-120, 80, -80]
+  - [-120, -80, 80]
+  - [120, -80, 80]
+  - [120, 80, 80]
+  - [-120, 80, 80]
+  - [0, 0, 170]
+
+bsp_tree:
+  polygon: [4, 5, 6]
+  color: { r: 180, g: 220, b: 255, a: 255 }
+  front:
+    polygon: [4, 6, 7]
+    color: { r: 180, g: 220, b: 255, a: 255 }
+    front:
+      polygon: [0, 1, 2]
+      color: { r: 210, g: 210, b: 210, a: 255 }
+      front:
+        polygon: [0, 2, 3]
+        color: { r: 210, g: 210, b: 210, a: 255 }
+        front:
+          polygon: [4, 0, 3]
+          color: { r: 255, g: 220, b: 120, a: 255 }
+          front:
+            polygon: [4, 3, 7]
+            color: { r: 255, g: 220, b: 120, a: 255 }
+            front:
+              polygon: [1, 5, 6]
+              color: { r: 255, g: 180, b: 100, a: 255 }
+              front:
+                polygon: [1, 6, 2]
+                color: { r: 255, g: 180, b: 100, a: 255 }
+                front:
+                  polygon: [7, 6, 8]
+                  color: { r: 240, g: 70, b: 70, a: 255 }
+                  front:
+                    polygon: [6, 2, 8]
+                    color: { r: 220, g: 60, b: 60, a: 255 }
+                    front:
+                      polygon: [2, 3, 8]
+                      color: { r: 200, g: 50, b: 50, a: 255 }
+                      front:
+                        polygon: [3, 7, 8]
+                        color: { r: 180, g: 40, b: 40, a: 255 }

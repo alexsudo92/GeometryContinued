@@ -5,40 +5,85 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Z-buffer Viewport3D"
-        Width="1100"
-        Height="700"
-        MinWidth="900"
-        MinHeight="600">
+        Width="1300"
+        Height="820"
+        MinWidth="1100"
+        MinHeight="700">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="390" />
             <ColumnDefinition Width="12" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Padding="12" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="8">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="Фигуры" />
-                    <TextBlock Margin="0,8,0,12" TextWrapping="Wrap" Foreground="#4B5563"
-                               Text="Описание фигур считывается из YAML тем же способом, что и в основном приложении: вершины и треугольники загружаются из файлов cube.yaml и 4pyramid.yaml." />
-                    <TextBlock FontWeight="SemiBold" Text="Доступные описания" />
-                    <ListBox x:Name="AvailableFiguresList"
-                             Height="150"
-                             Margin="0,8,0,12"
-                             DisplayMemberPath="Name" />
-                    <Button x:Name="LoadFigureButton"
-                            Height="32"
-                            Click="LoadFigureButton_OnClick"
-                            Content="Добавить" />
-                    <Separator Margin="0,16,0,16" />
-                    <TextBlock FontWeight="SemiBold" Text="Загруженные фигуры" />
-                    <ListBox x:Name="LoadedFiguresList"
-                             Height="170"
-                             Margin="0,8,0,0"
-                             DisplayMemberPath="Name"
-                             SelectionChanged="LoadedFiguresList_OnSelectionChanged" />
-                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="Фигуры" />
+                        <TextBlock Margin="0,8,0,12" TextWrapping="Wrap" Foreground="#4B5563"
+                                   Text="Добавляйте и удаляйте фигуры, а затем применяйте к выбранной фигуре аффинные и перспективные преобразования." />
+                        <TextBlock FontWeight="SemiBold" Text="Доступные описания" />
+                        <ListBox x:Name="AvailableFiguresList" Height="140" Margin="0,8,0,12" DisplayMemberPath="Name" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="LoadFigureButton" Width="120" Height="32" Click="LoadFigureButton_OnClick" Content="Добавить" />
+                            <Button x:Name="RemoveFigureButton" Width="120" Height="32" Margin="8,0,0,0" Click="RemoveFigureButton_OnClick" Content="Удалить" />
+                        </StackPanel>
+
+                        <Separator Margin="0,16,0,16" />
+                        <TextBlock FontWeight="SemiBold" Text="Загруженные фигуры" />
+                        <ListBox x:Name="LoadedFiguresList" Height="140" Margin="0,8,0,0" DisplayMemberPath="DisplayName" SelectionChanged="LoadedFiguresList_OnSelectionChanged" />
+
+                        <Separator Margin="0,16,0,16" />
+                        <TextBlock FontWeight="SemiBold" Text="Преобразования выбранной фигуры" />
+
+                        <TextBlock Margin="0,8,0,0" Text="Масштаб (X,Y,Z)" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox x:Name="ScaleXBox" Width="80" Text="1" />
+                            <TextBox x:Name="ScaleYBox" Width="80" Margin="8,0,0,0" Text="1" />
+                            <TextBox x:Name="ScaleZBox" Width="80" Margin="8,0,0,0" Text="1" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,8,0,0" Text="Поворот (ось X/Y/Z и угол)" />
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox x:Name="RotationAxisBox" Width="80" SelectedIndex="2">
+                                <ComboBoxItem Content="X" />
+                                <ComboBoxItem Content="Y" />
+                                <ComboBoxItem Content="Z" />
+                            </ComboBox>
+                            <TextBox x:Name="RotationAngleBox" Width="110" Margin="8,0,0,0" Text="0" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,8,0,0" Text="Перенос (X,Y,Z)" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox x:Name="TranslateXBox" Width="80" Text="0" />
+                            <TextBox x:Name="TranslateYBox" Width="80" Margin="8,0,0,0" Text="0" />
+                            <TextBox x:Name="TranslateZBox" Width="80" Margin="8,0,0,0" Text="0" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,8,0,0" Text="Косой сдвиг (xy,xz,yx,yz,zx,zy)" />
+                        <WrapPanel>
+                            <TextBox x:Name="ShearXYBox" Width="58" Margin="0,0,4,4" Text="0" />
+                            <TextBox x:Name="ShearXZBox" Width="58" Margin="0,0,4,4" Text="0" />
+                            <TextBox x:Name="ShearYXBox" Width="58" Margin="0,0,4,4" Text="0" />
+                            <TextBox x:Name="ShearYZBox" Width="58" Margin="0,0,4,4" Text="0" />
+                            <TextBox x:Name="ShearZXBox" Width="58" Margin="0,0,4,4" Text="0" />
+                            <TextBox x:Name="ShearZYBox" Width="58" Margin="0,0,4,4" Text="0" />
+                        </WrapPanel>
+
+                        <TextBlock Margin="0,8,0,0" Text="Перспектива (ToX, ToY, ToZ)" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox x:Name="PerspectiveXBox" Width="80" Text="0" />
+                            <TextBox x:Name="PerspectiveYBox" Width="80" Margin="8,0,0,0" Text="0" />
+                            <TextBox x:Name="PerspectiveZBox" Width="80" Margin="8,0,0,0" Text="0" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Width="140" Height="32" Click="ApplyTransformButton_OnClick" Content="Применить" />
+                            <Button Width="140" Height="32" Margin="8,0,0,0" Click="ResetTransformButton_OnClick" Content="Сбросить" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
                     <TextBlock FontWeight="SemiBold" Text="Камера" />
@@ -53,18 +98,11 @@
         </Border>
 
         <Border Grid.Column="2" Padding="12" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="8">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <Viewport3D x:Name="SceneViewport" Grid.Row="1" ClipToBounds="True">
-                    <Viewport3D.Camera>
-                        <PerspectiveCamera x:Name="MainCamera" FieldOfView="60" UpDirection="0,1,0" />
-                    </Viewport3D.Camera>
-                </Viewport3D>
-            </Grid>
+            <Viewport3D x:Name="SceneViewport" ClipToBounds="True">
+                <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="MainCamera" FieldOfView="60" UpDirection="0,1,0" />
+                </Viewport3D.Camera>
+            </Viewport3D>
         </Border>
     </Grid>
 </Window>

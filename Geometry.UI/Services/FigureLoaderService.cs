@@ -1,6 +1,7 @@
 using Geometry.UI.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -42,9 +43,9 @@ public class FigureLoaderService
         public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
         {
             parser.Consume<SequenceStart>();
-            var x = float.Parse(parser.Consume<Scalar>().Value);
-            var y = float.Parse(parser.Consume<Scalar>().Value);
-            var z = float.Parse(parser.Consume<Scalar>().Value);
+            var x = float.Parse(parser.Consume<Scalar>().Value, CultureInfo.InvariantCulture);
+            var y = float.Parse(parser.Consume<Scalar>().Value, CultureInfo.InvariantCulture);
+            var z = float.Parse(parser.Consume<Scalar>().Value, CultureInfo.InvariantCulture);
             parser.Consume<SequenceEnd>();
             return new Vector4(x, y, z, 1f);
         }
@@ -55,7 +56,7 @@ public class FigureLoaderService
 
     private sealed class ColorYamlConverter : IYamlTypeConverter
     {
-        public bool Accepts(Type type) => type == typeof(Color);
+        public bool Accepts(Type type) => type == typeof(Color) || type == typeof(Color?);
 
         public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
         {
@@ -65,7 +66,7 @@ public class FigureLoaderService
             while (!parser.Accept<MappingEnd>(out _))
             {
                 var key = parser.Consume<Scalar>().Value;
-                var value = byte.Parse(parser.Consume<Scalar>().Value);
+                var value = byte.Parse(parser.Consume<Scalar>().Value, CultureInfo.InvariantCulture);
                 switch (key.ToLowerInvariant())
                 {
                     case "r": r = value; break;
